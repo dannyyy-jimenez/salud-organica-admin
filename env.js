@@ -16,7 +16,7 @@ const ENV = {
 };
 
 function getEnvVars(env = "") {
-  if (!env || env === null || env === undefined || env === "") return ENV.prod;
+  if (!env || env === null || env === undefined || env === "") return ENV.dev;
   if (env.indexOf("dev") !== -1) return ENV.dev;
   if (env.indexOf("staging") !== -1) return ENV.staging;
   if (env.indexOf("prod") !== -1) return ENV.prod;

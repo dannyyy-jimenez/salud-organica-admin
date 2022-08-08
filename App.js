@@ -15,13 +15,16 @@ import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 import API from './Api'
 
+import DashboardComponent from './components/DashboardComponent'
 import OrdersComponent from './components/OrdersComponent'
 import OrderComponent from './components/OrderComponent'
 import VisitorsComponent from './components/VisitorsComponent'
 import DistributorsComponent from './components/DistributorsComponent'
+import DistributorsMapComponent from './components/DistributorsMapComponent'
 import DistributorComponent from './components/DistributorComponent'
 import DistributorDepthComponent from './components/DistributorDepthComponent'
 import InvoicesComponent from './components/InvoicesComponent'
+import InhouseInvoicesComponent from './components/InhouseInvoicesComponent'
 import SlipsComponent from './components/PackingSlipComponent'
 import Carts from './components/Carts'
 
@@ -33,6 +36,25 @@ const VisitorsStack = createNativeStackNavigator();
 const CartsStack = createNativeStackNavigator();
 const DistributorsStack = createNativeStackNavigator();
 const InboxStack = createNativeStackNavigator();
+const DashboardStack = createNativeStackNavigator();
+
+function DashboardStackComponent() {
+  return (
+    <DashboardStack.Navigator screenOptions={{
+      headerBackVisible: false,
+      headerBackTitle: false,
+      headerShown: false,
+      contentStyle: {
+        backgroundColor: 'white'
+      }
+    }}>
+      <DashboardStack.Screen name="DashboardHome" component={DashboardComponent} />
+      <DistributorsStack.Screen name="DistributorView" component={DistributorComponent} />
+      <OrdersStack.Screen name="OrderView" component={OrderComponent} />
+    </DashboardStack.Navigator>
+  )
+}
+
 
 function OrdersStackComponent() {
   return (
@@ -90,8 +112,9 @@ function InboxStackComponent() {
         backgroundColor: 'white'
       }
     }}>
-      <InboxStack.Screen name="InboxSlips" component={SlipsComponent} />
+      <InboxStack.Screen name="InboxInhouseInvoices" component={InhouseInvoicesComponent} />
       <InboxStack.Screen name="InboxInvoices" component={InvoicesComponent} />
+      <InboxStack.Screen name="InboxSlips" component={SlipsComponent} />
     </InboxStack.Navigator>
   )
 }
@@ -107,6 +130,7 @@ function DistributorsStackComponent() {
       }
     }}>
       <DistributorsStack.Screen name="DistributorsHome" component={DistributorsComponent} />
+      <DistributorsStack.Screen name="DistributorsMap" component={DistributorsMapComponent} />
       <DistributorsStack.Screen name="DistributorView" component={DistributorComponent} />
       <DistributorsStack.Screen name="DistributorDepth" component={DistributorDepthComponent} />
     </DistributorsStack.Navigator>
@@ -121,6 +145,7 @@ export default function App() {
   const [notificationObject, setNotificationObject] = React.useState({})
   const [notifToken, setNotificationToken] = React.useState(null)
   const [userDeviceID, setUserDeviceID] = React.useState(null)
+  const colorScheme = useColorScheme();
 
   React.useEffect(() => {
     Notifications.setBadgeCountAsync(0);
@@ -190,7 +215,7 @@ export default function App() {
 
   return (
     <>
-      <StatusBar backgroundColor={'transparent'} translucent/>
+      <StatusBar style="dark"/>
       {
         !appIsReady &&
         <View style={{height: '100%', width: '100%', justifyContent: 'center', alignItems: 'center'}}>
@@ -251,6 +276,8 @@ export default function App() {
                 return <Feather name="package" size={size} color={color} />
               } else if (route.name === 'Carts') {
                 return <Feather name="shopping-cart" size={size} color={color} />
+              } else if (route.name === 'Dashboard') {
+                return <Feather name="home" size={size} color={color} />
               } else if (route.name === 'Inbox') {
                 return <Feather name="inbox" size={size} color={color} />
               } else if (route.name === 'Visitors') {
@@ -263,6 +290,7 @@ export default function App() {
               return <Feather name="package" size={size} color={color} />
             }
           })}>
+            <Tab.Screen name="Dashboard" component={DashboardStackComponent} />
             <Tab.Screen name="Orders" component={OrdersStackComponent} />
             <Tab.Screen name="Inbox" component={InboxStackComponent} />
             <Tab.Screen name="Distributors" component={DistributorsStackComponent} />

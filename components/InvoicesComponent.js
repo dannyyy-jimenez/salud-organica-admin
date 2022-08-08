@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Linking, Platform, ScrollView, Share, TextInput, Image, RefreshControl, StyleSheet, Text, View, TouchableOpacity, SafeAreaView } from 'react-native';
+import { Linking, Platform, ScrollView, Dimensions, Share, TextInput, Image, RefreshControl, StyleSheet, Text, View, TouchableOpacity, SafeAreaView } from 'react-native';
 import LottieView from 'lottie-react-native';
 import { MaterialIcons, Ionicons, Feather } from '@expo/vector-icons';
 import ActionSheet from "react-native-actions-sheet";
@@ -14,6 +14,12 @@ import {Buffer} from "buffer";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { BarCodeScanner } from 'expo-barcode-scanner';
+import {
+  ProgressChart
+} from "react-native-chart-kit";
+import moment from 'moment';
+moment().format();
+import { AnimatedCircularProgress } from 'react-native-circular-progress';
 
 let stylesheet = require('../Styles')
 let styles = stylesheet.Styles;
@@ -34,6 +40,8 @@ export default function InvoicesComponent({navigation}) {
   const [distributors, setDistributors] = React.useState([])
   const [invoiceOwner, setInvoiceOwner] = React.useState(null)
   const [invoiceOwnerName, setInvoiceOwnerName] = React.useState(null)
+  const [distributorSearch, setDistributorSearch] = React.useState('')
+  const [topups, setTopUps] = React.useState([])
 
   const [invoiceLine, setInvoiceLine] = React.useState([])
   const [invoiceLineItemAmount, setInvoiceLineItemAmount] = React.useState(0)
@@ -49,6 +57,17 @@ export default function InvoicesComponent({navigation}) {
   const [slipInvoice, setSlipInvoice] = React.useState(null)
   const [showScanner, setShowScanner] = React.useState(false)
 
+  // stats
+
+  const goals = [1000, 4000, 15000]
+  const [dailySales, setDailySales] = React.useState(0);
+  const [weeklySales, setWeelySales] = React.useState(0);
+  const [monthlySales, setMonthySales] = React.useState(0);
+
+  const [invoicesProgress, setInvoicesProgress] = React.useState({
+    labels: [],
+    data: []
+  })
 
   const load = async () => {
     if (!oathToken) return;
@@ -68,6 +87,9 @@ export default function InvoicesComponent({navigation}) {
       setInvoiceLineItemRefName(res.data.lineItems.filter(l => l.UnitPrice)[0].Name)
       setInvoiceLineItemRefId(res.data.lineItems.filter(l => l.UnitPrice)[0].Id)
       setInvoiceLineItemRefCost(res.data.lineItems.filter(l => l.UnitPrice)[0].UnitPrice?.toString())
+      setTopUps(res.data.topups)
+
+      AnalyzeInvoices(res.data.invoices)
 
       setIsLoading(false);
     } catch (e) {
@@ -75,6 +97,51 @@ export default function InvoicesComponent({navigation}) {
       setOathToken(null)
       setIsLoading(false)
     }
+  }
+
+  const AnalyzeInvoices = (data) => {
+    let weekly = 0
+    let daily = 0
+    let monthly = 0
+    for (let invoice of data) {
+      if (moment(invoice.TxnDate).isSame(new Date(), 'week')) {
+        weekly += invoice.TotalAmt
+      }
+
+      if (moment(invoice.TxnDate).isSame(new Date(), 'day')) {
+        daily += invoice.TotalAmt
+      }
+
+      if (moment(invoice.TxnDate).isSame(new Date(), 'month')) {
+        monthly += invoice.TotalAmt
+      }
+    }
+    setWeelySales(weekly)
+    setDailySales(daily)
+    setMonthySales(monthly)
+
+    let progressLabels = []
+    let progressData = []
+
+    if (daily != 0) {
+      progressLabels.push("Daily $"+daily.toString())
+      progressData.push(daily/goals[0])
+    }
+
+    if (weekly != 0) {
+      progressLabels.push("Weekly $"+weekly.toString())
+      progressData.push(weekly/goals[1])
+    }
+
+    if (monthly != 0) {
+      progressLabels.push("Monthly $"+monthly.toString())
+      progressData.push(monthly/goals[2])
+    }
+
+    setInvoicesProgress({
+      "labels": progressLabels,
+      "data": progressData
+    })
   }
 
   const verify = async () => {
@@ -117,6 +184,8 @@ export default function InvoicesComponent({navigation}) {
   }
 
   const GetPrintableURI = async (id) => {
+    setIsLoading(true);
+
     try {
       const res = await API.get('/admin/quickbooks/invoice/printable', {id: id});
 
@@ -125,6 +194,8 @@ export default function InvoicesComponent({navigation}) {
       const fileUri = FileSystem.documentDirectory + `salud_organica-invoice_${id}.pdf`;
       const buff = Buffer.from(res.data.uri, 'base64')
       let pdf = buff.toString('base64')
+
+      setIsLoading(false);
 
       await FileSystem.writeAsStringAsync(fileUri, pdf, { encoding: FileSystem.EncodingType.Base64 });
 
@@ -132,11 +203,14 @@ export default function InvoicesComponent({navigation}) {
         uri: fileUri
       });
     } catch (e) {
+      setIsLoading(false);
       console.log(e)
     }
   }
 
   const GetShareableURI = async (id) => {
+    setIsLoading(true);
+
     try {
       const res = await API.get('/admin/quickbooks/invoice/printable', {id: id});
 
@@ -146,10 +220,15 @@ export default function InvoicesComponent({navigation}) {
       const buff = Buffer.from(res.data.uri, 'base64')
       let pdf = buff.toString('base64')
 
+      setIsLoading(false);
+
       await FileSystem.writeAsStringAsync(fileUri, pdf, { encoding: FileSystem.EncodingType.Base64 });
 
-      await Sharing.shareAsync(fileUri);
+      const result = await Share.share({
+        message: res.data._txt
+      });
     } catch (e) {
+      setIsLoading(false);
       console.log(e)
     }
   }
@@ -179,7 +258,9 @@ export default function InvoicesComponent({navigation}) {
         const res = await API.post('/admin/inventory', {editMode: false, editID: null, identifier: invoice.CustomerRef.value, invoiceId: invoice.Id, line: 'herencia', isDelivery: true, herencia_rubbing: herencia_rubbing, herencia_cream: herencia_cream, herencia_rollon: herencia_rollon, sourappleGummies: 0, tropicalGummies: 0, berriesGummies: 0, sourdieselFlower: 0, sourdieselJoints: 0, oilDefault: 0, spacecandyJoints: 0, spacecandyFlower: 0, godfatherFlower: 0, godfatherJoints: 0, note: 'topped up through quickbooks'});
         if (res.isError) throw 'error';
       }
+      setIsLoading(false);
     } catch (e) {
+      setIsLoading(false);
       console.log(e)
     }
   }
@@ -231,6 +312,7 @@ export default function InvoicesComponent({navigation}) {
       setLineItems([])
       setInvoiceOwner(null)
       setInvoiceOwnerName(null)
+      setInvoiceLineItems([])
     } catch (e) {
       setIsLoading(false)
       invoiceActionSheetRef.current?.setModalVisible(true)
@@ -275,6 +357,16 @@ export default function InvoicesComponent({navigation}) {
     if (name === 'Topical:La Herencia Del Abuelo Rubbing Artisanal Alcohol Roll- On') return 'La Herencia Del Abuelo Roll-on'
 
     return name.split(":").length > 1 ? name.split(":")[1] : name
+  }
+
+  const FormatLineItemName = (name) => {
+    if (name === 'La Herencia Del Abuelo Artisanal Rubbing Alcohol') return 'Artisanal Rubbing Alcohol'
+
+    if  (name === 'La Herencia Del Abuelo Topical Cream') return 'Topical Cream'
+
+    if (name === 'La Herencia Del Abuelo Rubbing Artisanal Alcohol Roll- On') return 'Artisanal Rubbing Roll-on'
+
+    return name
   }
 
   React.useEffect(() => {
@@ -329,25 +421,31 @@ export default function InvoicesComponent({navigation}) {
   return (
     <SafeAreaView style={styles.defaultTabContainer}>
       <View style={styles.defaultTabHeader}>
-        <TouchableOpacity
-          onPress={() => actionSheetRef.current?.setModalVisible(true)}
-          underlayColor='#fff'>
-          <MaterialIcons name="sort" size={24} color={stylesheet.Primary} />
-        </TouchableOpacity>
-        <View style={styles.spacer}></View>
-        <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Invoices {invoices.length > 0 ? `(${invoices.length})` : ''}</Text>
-        <View style={styles.spacer}></View>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           onPress={() => navigation.navigate('InboxSlips')}
           underlayColor='#fff'>
           <Feather name="file-text" size={24} color={stylesheet.Primary} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setShowScanner(true)}
-          underlayColor='#fff'
-          style={{marginLeft: 10}}>
-          <Feather name="maximize" size={24} color={stylesheet.Primary} />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
+        <View style={styles.spacer}></View>
+        <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Invoices {invoices.length > 0 ? `(${invoices.length})` : ''}</Text>
+        <View style={styles.spacer}></View>
+        {
+          invoices.length > 0 &&
+          <>
+            {/* <TouchableOpacity
+              onPress={() => setShowScanner(true)}
+              underlayColor='#fff'
+              style={{marginLeft: 10}}>
+              <Feather name="maximize" size={24} color={stylesheet.Primary} />
+            </TouchableOpacity> */}
+            <TouchableOpacity
+              onPress={() => invoiceActionSheetRef.current?.setModalVisible(true)}
+              underlayColor='#fff'
+              style={{marginLeft: 10}}>
+              <Feather name="plus" size={24} color={stylesheet.Primary} />
+            </TouchableOpacity>
+          </>
+        }
       </View>
       <ScrollView style={styles.defaultTabScrollContent} contentContainerStyle={{alignItems: 'flex-start', justifyContent: 'flex-start', width: '96%', marginLeft: '2%', paddingBottom: 70}} refreshControl={<RefreshControl refreshing={isLoading} tintColor={stylesheet.Primary} colors={[stylesheet.Primary]} onRefresh={load} />}>
         {
@@ -373,7 +471,105 @@ export default function InvoicesComponent({navigation}) {
         }
 
         {
-          invoices.map((invoice) => {
+          !isLoading && invoicesProgress.labels.length > 0 &&
+          <>
+            <View style={[styles.defaultRowContainer, styles.marginWidth, styles.center, {flexWrap: 'wrap'}]}>
+
+              {
+                dailySales > 0 &&
+                <AnimatedCircularProgress
+                  size={130}
+                  width={10}
+                  fill={(dailySales / goals[0])*100}
+                  tintColor="#90EE90"
+                  style={{margin: 10}}
+                  backgroundColor="#F0F0F0">
+                  {
+                    (fill) => (
+                      <>
+                        <Text style={{color: "#90EE90", fontSize: 20, fontWeight: 'bold'}}>
+                          ${ dailySales.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",") }
+                        </Text>
+                        <Text>
+                          Daily
+                        </Text>
+                      </>
+                    )
+                  }
+                </AnimatedCircularProgress>
+              }
+              {
+                weeklySales > 0 &&
+                <AnimatedCircularProgress
+                  size={130}
+                  width={10}
+                  fill={(weeklySales / goals[1])*100}
+                  tintColor="#90EE90"
+                  style={{margin: 10}}
+                  backgroundColor="#F0F0F0">
+                  {
+                    (fill) => (
+                      <>
+                        <Text style={{color: "#90EE90", fontSize: 20, fontWeight: 'bold'}}>
+                          ${ weeklySales.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",") }
+                        </Text>
+                        <Text>
+                          Weekly
+                        </Text>
+                      </>
+                    )
+                  }
+                </AnimatedCircularProgress>
+              }
+              {
+                monthlySales > 0 &&
+                <AnimatedCircularProgress
+                  size={130}
+                  width={10}
+                  fill={(monthlySales / goals[2])*100}
+                  tintColor="#90EE90"
+                  style={{margin: 10}}
+                  backgroundColor="#F0F0F0">
+                  {
+                    (fill) => (
+                      <>
+                        <Text style={{color: "#90EE90", fontSize: 20, fontWeight: 'bold'}}>
+                          ${ monthlySales.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",") }
+                        </Text>
+                        <Text>
+                          Monthly
+                        </Text>
+                      </>
+                    )
+                  }
+                </AnimatedCircularProgress>
+              }
+            </View>
+            {/* <ProgressChart
+              data={{
+                labels: invoicesProgress.labels, // optional
+                data: invoicesProgress.data
+              }}
+              width={Dimensions.get("window").width * 0.98}
+              height={220}
+              style={{left: -20}}
+              strokeWidth={16}
+              radius={32}
+              chartConfig={{
+                backgroundColor: "#FFF",
+                backgroundGradientFrom: "#FFF",
+                backgroundGradientTo: "#FFF",
+                decimalPlaces: 0, // optional, defaults to 2dp
+                color: (opacity = 1) => `rgba(0, 158, 96, ${opacity})`,
+                labelColor: (opacity = 1) => `rgba(0, 158, 96, ${opacity})`
+              }}
+              hideLegend={false}
+            /> */}
+          </>
+        }
+
+        {
+          !isLoading && invoices.map((invoice) => {
             return (
               <View style={[styles.fullInvoice]}>
                 <View style={[styles.defaultRowContainer, styles.fullWidth, {padding: 10}]}>
@@ -405,7 +601,7 @@ export default function InvoicesComponent({navigation}) {
                 <View style={styles.defaultColumnContainer, styles.fullWidth, styles.fullSCContent}>
                   <View style={[styles.defaultRowContainer, styles.fullWidth]}>
                     <View style={[styles.defaultColumnContainer]}>
-                      <Text numberOfLines={1} style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary, {marginBottom: 2}]}>Balance: ${invoice.Balance}</Text>
+                      <Text numberOfLines={1} style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary, {marginBottom: 2}]}>Balance: ${invoice.Balance.toFixed(2)}</Text>
                     </View>
                     <View style={styles.spacer}></View>
                     <View style={[styles.defaultColumnContainer]}>
@@ -413,7 +609,7 @@ export default function InvoicesComponent({navigation}) {
                     </View>
                   </View>
                   <View style={[styles.spacer, styles.defaultColumnContainer, styles.fullWidth, {alignItems: 'flex-start', marginTop: 10}]}>
-                    <Text style={[styles.tinyText, styles.primary, styles.bold, styles.center]}>Total: ${invoice.TotalAmt}</Text>
+                    <Text style={[styles.tinyText, styles.primary, styles.bold, styles.center]}>Total: ${invoice.TotalAmt.toFixed(2)}</Text>
                     <Text style={[styles.tinyText, styles.primary, styles.bold, styles.center, {marginTop: 5}]}>{invoice.BillEmail?.Address}</Text>
                   </View>
                   <View style={{position: 'absolute', right: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopLeftRadius: 5, borderBottomRightRadius: 5, backgroundColor: stylesheet.Primary}}>
@@ -429,9 +625,12 @@ export default function InvoicesComponent({navigation}) {
                     <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => setSlipInvoice(invoice)}>
                       <Feather name="eye" size={28} color="black" />
                     </TouchableOpacity>
-                    <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => TopUpDelivery(invoice)}>
-                      <Feather name="truck" size={28} color="black" />
-                    </TouchableOpacity>
+                    {
+                      !topups.includes(invoice.Id) &&
+                      <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => TopUpDelivery(invoice)}>
+                        <Feather name="truck" size={28} color="black" />
+                      </TouchableOpacity>
+                    }
                   </View>
                 </View>
               </View>
@@ -448,14 +647,19 @@ export default function InvoicesComponent({navigation}) {
         <View>
           <View style={[styles.defaultRowContainer, styles.fullWidth]}>
             <TouchableOpacity style={{marginLeft: 8, marginRight: 8}} onPress={() => onAddLineItem()} disabled={!invoiceLineItemRefId}>
-              <Feather name="box" style={{opacity: !invoiceLineItemRefId ? 0.2 : 1}} size={24} color="black" />
+              <Feather name="plus" style={{opacity: !invoiceLineItemRefId ? 0.2 : 1}} size={24} color="black" />
             </TouchableOpacity>
             <View style={styles.spacer}></View>
-            <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary, {marginTop: 10}]}>New Invoice {invoiceOwner ? `for ${invoiceOwnerName}`: ''}</Text>
-            <View style={styles.spacer}></View>
-            <TouchableOpacity style={{marginLeft: 8, marginRight: 8}} onPress={() => onCreateInvoice()}>
-              <Feather name="plus" size={24} color="black" />
+            <TouchableOpacity style={{marginLeft: 8, marginRight: 8}} onPress={() => {setInvoiceOwner(null); setInvoiceOwnerName(null)}}>
+              <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary, {marginTop: 10}]}>New Invoice {invoiceOwner ? `for ${invoiceOwnerName}`: ''}</Text>
             </TouchableOpacity>
+            <View style={styles.spacer}></View>
+            {
+                invoiceLineItems.length > 0 &&
+                <TouchableOpacity style={{marginLeft: 8, marginRight: 8}} onPress={() => onCreateInvoice()}>
+                  <Feather name="file-plus" size={24} color="black" />
+                </TouchableOpacity>
+            }
           </View>
           <View style={styles.line}></View>
           <View style={[styles.paddedWidth, styles.defaultColumnContainer]}>
@@ -463,22 +667,26 @@ export default function InvoicesComponent({navigation}) {
               !invoiceOwner &&
               <>
                 <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Distributor</Text>
-                <Picker
-                  style={{marginTop: 0, paddingTop: 0, marginBottom: 20}}
-                  selectedValue={invoiceOwner}
-                  onValueChange={(itemValue, itemIndex) => {
-                    setInvoiceOwner(itemValue)
-                    setInvoiceOwnerName(distributors[itemIndex - 1].company)
-                  }}>
-                  <Picker.Item label="Any" value={null} />
+                <TextInput
+                  style={[{marginTop: 25,  marginBottom: 20, width: '100%'}, styles.baseInput]}
+                  placeholder="Find distributor..."
+                  keyboardType="default"
+                  value={distributorSearch}
+                  onChangeText={(text) => {
+                    setDistributorSearch(text)
+                  }}
+                />
+                <ScrollView style={{height: 200}}>
                   {
-                    distributors.map(distributor => {
+                    distributors.filter(dist => dist.company.toLowerCase().replace(/[\"'!@#$%^&*()ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž ]/g, "").includes(distributorSearch.toLowerCase().replace(/[\"'!@#$%^&*()ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž ]/g, ""))).map(distributor => {
                       return (
-                        <Picker.Item label={distributor.company} value={distributor.quickbooksId} />
+                        <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setInvoiceOwner(distributor.quickbooksId); setInvoiceOwnerName(distributor.company)}}>
+                          <Text style={[styles.baseText, styles.tertiary]}>{distributor.company} - {distributor.managers.join(', ')}</Text>
+                        </TouchableOpacity>
                       )
                     })
                   }
-                </Picker>
+                </ScrollView>
               </>
             }
 
@@ -542,7 +750,7 @@ export default function InvoicesComponent({navigation}) {
                   {
                     lineItems.map(lineItem => {
                       return (
-                        <Picker.Item label={lineItem.Name} value={lineItem.Id} />
+                        <Picker.Item label={FormatLineItemName(lineItem.Name)} value={lineItem.Id} />
                       )
                     })
                   }
@@ -553,7 +761,7 @@ export default function InvoicesComponent({navigation}) {
         </View>
       </ActionSheet>
       <ActionSheet onClose={() => setSlipId(null)} containerStyle={{paddingBottom: 20, backgroundColor: stylesheet.Secondary}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} ref={slipScanActionSheetRef}>
-        <View>
+        <View style={{paddingBottom: 50}}>
           <View style={[styles.defaultRowContainer, styles.fullWidth]}>
             <TouchableOpacity style={{marginLeft: 8, marginRight: 8}} onPress={() => {}}>
               <Feather name="chevron-right" size={24} color="#fff" />
@@ -657,9 +865,12 @@ export default function InvoicesComponent({navigation}) {
                   <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => GetShareableURI(slipInvoice.Id)}>
                     <Feather name="share" size={28} color="black" />
                   </TouchableOpacity>
-                  <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => TopUpDelivery(slipInvoice)}>
-                    <Feather name="truck" size={28} color="black" />
-                  </TouchableOpacity>
+                  {
+                    !topups.includes(slipInvoice.Id) &&
+                    <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => TopUpDelivery(slipInvoice)}>
+                      <Feather name="truck" size={28} color="black" />
+                    </TouchableOpacity>
+                  }
                 </View>
               </View>
             </>

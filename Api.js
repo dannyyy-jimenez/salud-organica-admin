@@ -49,6 +49,7 @@ const onError = (error) => {
 };
 
 export default {
+  endpoint: env.apiUrl,
   get: async (query, data) => {
     try {
       const uuid = await SecureStore.getItemAsync('SSPK');

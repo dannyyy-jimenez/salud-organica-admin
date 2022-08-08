@@ -18,6 +18,18 @@ const Styles = StyleSheet.create({
     paddingLeft: 10,
     paddingRight: 10
   },
+  chip: {
+    minHeight: 40,
+    minWidth: 80,
+    textAlign: 'center',
+    backgroundColor: "#F9F9F9",
+    paddingLeft: 25,
+    paddingRight: 25,
+    paddingTop: 10,
+    paddingBottom: 10,
+    borderRadius: 5,
+    marginRight: 20
+  },
   baseText: {
     fontSize: 15,
     letterSpacing: 0.6
@@ -121,6 +133,9 @@ const Styles = StyleSheet.create({
   },
   opaque: {
     opacity: 0.8
+  },
+  opaquer: {
+    opacity: 0.3
   },
   defaultTabContainer: {
     height: '100%',
@@ -289,15 +304,17 @@ const Styles = StyleSheet.create({
   },
   defaultStoreCard: {
     minHeight: 205,
-    width: '48%',
-    minWidth: 150,
+    width: '40%',
+    minWidth: 100,
     maxWidth: 220,
+    marginLeft: 5,
+    marginRight: 5,
     marginTop: 8
   },
   defaultStoreCardMini: {
     minHeight: 150,
-    width: '48%',
-    minWidth: 150,
+    width: '45%',
+    minWidth: 110,
     maxWidth: 220,
     marginTop: 10
   },
@@ -331,10 +348,12 @@ const Styles = StyleSheet.create({
   },
   fullStoreCard: {
     minHeight: 100,
-    width: 400,
-    maxWidth: '100%',
+    width: 350,
+    marginLeft: 10,
+    marginRight: 10,
+    maxWidth: '98%',
     marginTop: 20,
-    marginBottom: 20,
+    marginBottom: 20
   },
   fullInvoice: {
     minHeight: 200,
@@ -381,6 +400,29 @@ const Styles = StyleSheet.create({
     opacity: 0.2,
     borderRadius: 4
   },
+  analyticCard: {
+    height: 220,
+    marginRight: 20,
+    width: 160,
+    borderRadius: 5,
+    flexDirection: 'column',
+    justifyContent: 'space-around',
+    backgroundColor: 'white',
+    padding: 10,
+  },
+  analyticCardF: {
+    height: 250,
+    marginLeft: 10,
+    marginRight: 10,
+    width: 350,
+    maxWidth: '98%',
+    marginTop: 20,
+    marginBottom: 20,
+    borderRadius: 5,
+    flexDirection: 'column',
+    backgroundColor: 'white',
+    padding: 10,
+  },
   statCard: {
     width: 150,
     margin: 5,
@@ -412,6 +454,37 @@ const Styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#FAFAFA',
   },
+  elevated: {
+    shadowColor: "black",
+    shadowRadius: 10,
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 5
+  },
+  switchable: {
+    backgroundColor: '#FAFAFA',
+    borderRadius: 20,
+    height: 50
+  },
+  switchie: {
+    width: '49%',
+    height: '98%',
+    borderRadius: 20,
+    marginLeft: '0.5%',
+    marginRight: '0.5%',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  switchieOn: {
+    backgroundColor: Primary,
+    shadowColor: 'black',
+    shadowRadius: 5,
+    shadowOpacity: 0.30,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 5
+  },
   defaultInventoryCardAddonSmall:{
     width: '25%',
     height: 100,
@@ -421,6 +494,20 @@ const Styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 4,
     backgroundColor: '#FAFAFA',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    height: 60,
+    width: 60,
+    backgroundColor: Primary ,
+    borderRadius: 30,
+    shadowColor: "black",
+    shadowRadius: 10,
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 5
   }
 });
 

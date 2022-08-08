@@ -91,6 +91,8 @@ export default function PackingSlip({navigation}) {
 
       await FileSystem.writeAsStringAsync(fileUri, pdf, { encoding: FileSystem.EncodingType.UTF8 });
 
+      const uuid = await SecureStore.getItemAsync('SSPK');
+
       await Sharing.shareAsync(fileUri);
     } catch (e) {
       console.log(e)
@@ -140,7 +142,6 @@ export default function PackingSlip({navigation}) {
     if (identifier === 'rollon_gel') return "Herencia del Abuelo Roll-on";
     if (identifier === 'artis_rubbing' || identifier === 'rubbing') return "Herencia del Abuelo Alcohol";
 
-    console.log(identifier)
     if (identifier === 'topical_cream' || identifier == "cream") return "Herencia del Abuelo Cream";
 
     return identifier;
@@ -206,9 +207,9 @@ export default function PackingSlip({navigation}) {
                 <View style={[styles.defaultRowContainer, styles.fullWidth, {padding: 10}]}>
                   <View style={[styles.defaultColumnContainer]}>
                     <Text style={[styles.tinyText, styles.tertiary, {marginTop: 2, opacity: 0.3}]}>Prepare For</Text>
-                    <Text style={[styles.tinyText, styles.tertiary, {marginTop: 2, opacity: 0.5}]}>{slip.distributor.name}</Text>
-                    <Text style={[styles.tinyText, styles.tertiary, {marginTop: 2, opacity: 0.5}]}>{slip.distributor.address.split(",")[0]}</Text>
-                    <Text style={[styles.tinyText, styles.tertiary, {marginTop: 2, opacity: 0.5}]}>{slip.distributor.address.split(",").slice(1)}</Text>
+                    <Text style={[styles.tinyText, styles.tertiary, {marginTop: 2, opacity: 0.5}]}>{slip.distributor.name} ({slip.distributor.routeLetter} - {slip.distributor.routeNumeration})</Text>
+                    <Text style={[styles.tinyText, styles.tertiary, {marginTop: 2, opacity: 0.5}]}>{slip.distributor.address.split(", ")[0]}</Text>
+                    <Text style={[styles.tinyText, styles.tertiary, {marginTop: 2, opacity: 0.5}]}>{slip.distributor.address.split(", ").slice(1).join(', ')}</Text>
                   </View>
                   <View style={[styles.spacer]}></View>
                   <Image  style={{height: 60,  width: 60, resizeMode: 'contain', marginRight: 10}} source={{uri: 'https://res.cloudinary.com/cbd-salud-sativa/image/upload/v1649685403/salud-organica-logicon.png'}}></Image>
@@ -301,7 +302,7 @@ export default function PackingSlip({navigation}) {
                 />
                 <ScrollView style={{height: 200}}>
                   {
-                    distributors.filter(dist => dist.company.toLowerCase().replaceAll(/[\"'!@#$%^&*()ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž ]/g, "").includes(distributorSearch.toLowerCase().replaceAll(/[\"'!@#$%^&*()ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž ]/g, ""))).map(distributor => {
+                    distributors.filter(dist => dist.company.toLowerCase().replace(/[\"'!@#$%^&*()ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž ]/g, "").includes(distributorSearch.toLowerCase().replace(/[\"'!@#$%^&*()ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž ]/g, ""))).map(distributor => {
                       return (
                         <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setSlipOwner(distributor.identifier); setSlipOwnerName(distributor.company)}}>
                           <Text style={[styles.baseText, styles.tertiary]}>{distributor.company}</Text>

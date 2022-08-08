@@ -13,12 +13,14 @@ import {
 } from "react-native-chart-kit";
 
 import API from '../Api'
+import moment from 'moment'
 
 let stylesheet = require('../Styles')
 let styles = stylesheet.Styles;
 
 const actionSheetRef = React.createRef();
 const infoSheetRef = React.createRef();
+const herenciaUpkeepSheetRef = React.createRef();
 
 export default function DistributorComponent({navigation, route}) {
   const [lines, setLines] = React.useState([])
@@ -32,6 +34,7 @@ export default function DistributorComponent({navigation, route}) {
   const [notes, setNotes] = React.useState("")
   const [editMode, setEditMode] = React.useState(false)
   const [editID, setEditID] = React.useState(null)
+  const [projections, setProjections] = React.useState(null)
 
   const [info, setInfo] = React.useState({})
 
@@ -75,6 +78,11 @@ export default function DistributorComponent({navigation, route}) {
       setNotes(null)
       setInfo(res.data._info)
       setIsLoading(false)
+      setProjections(res.data._projections)
+
+      if (res.data._info.dist_lanes === 0) {
+        herenciaUpkeepSheetRef.current?.setModalVisible(true)
+      }
 
       if (line === 'herencia' && !isDelivery) {
         let maxes = {
@@ -124,6 +132,7 @@ export default function DistributorComponent({navigation, route}) {
     load()
   }, [])
 
+
   React.useEffect(() => {
     if (isLoading) {
       animationRef.current.reset();
@@ -137,6 +146,32 @@ export default function DistributorComponent({navigation, route}) {
     try {
       const res = await API.post('/admin/inventory', {editMode: editMode, editID: editID, identifier: route.params.identifier, line, isDelivery, herencia_rubbing: alcohol, herencia_cream: creams, herencia_rollon: rollons, sourappleGummies, tropicalGummies, berriesGummies, sourdieselFlower, sourdieselJoints, oilDefault, spacecandyJoints, spacecandyFlower, godfatherFlower, godfatherJoints, note: notes});
 
+      if (res.isError) throw 'error';
+
+      actionSheetRef.current?.setModalVisible(false)
+      setAlcohol(0)
+      setCreams(0)
+      setRollons(0)
+      setNotes(null)
+      setEditID(null)
+      setEditMode(false)
+      load(true)
+
+      console.log(res)
+
+    } catch (e) {
+      console.log(e)
+      setIsLoading(false)
+    }
+  }
+
+  const onUpdateHerenciaUpkeep = async () => {
+    setIsLoading(true);
+
+    try {
+      const res = await API.post('/admin/distributors/herencia', {distributorId: route.params.identifier, herencia_displays: info?.herencia_displays, herencia_visibility: info?.herencia_visibility, dist_lanes: info?.dist_lanes});
+
+      console.log(res)
       if (res.isError) throw 'error';
 
       actionSheetRef.current?.setModalVisible(false)
@@ -209,6 +244,10 @@ export default function DistributorComponent({navigation, route}) {
       return 'Northside'
     }
 
+    if (l == 'H') {
+      return 'New York TBD'
+    }
+
     return l
   }
 
@@ -262,11 +301,11 @@ export default function DistributorComponent({navigation, route}) {
         </TouchableOpacity>
         <View style={styles.spacer}></View>
         {
-          route.params.company.length > 10 &&
-          <Text style={[styles.baseText, styles.bold, styles.primary]}>{route.params.company}</Text>
+          route.params.company.length > 30 &&
+          <Text style={[styles.baseText, styles.bold, styles.primary]}>{route.params.company.slice(0, 30)}...</Text>
         }
         {
-          route.params.company.length <= 10 &&
+          route.params.company.length <= 30 &&
           <Text style={[styles.baseText, styles.bold, styles.primary]}>Inventory for {route.params.company}</Text>
         }
         <View style={styles.spacer}></View>
@@ -275,11 +314,6 @@ export default function DistributorComponent({navigation, route}) {
           underlayColor='#fff'
           style={{marginRight: 10}}>
           <Feather name="info" size={24} color={stylesheet.Primary} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => actionSheetRef.current?.setModalVisible(true)}
-          underlayColor='#fff'>
-          <Feather name="clipboard" size={24} color={stylesheet.Primary} />
         </TouchableOpacity>
       </View>
       <ScrollView style={[styles.defaultTabScrollContent]} contentContainerStyle={{alignItems: 'center', width: '98%', marginLeft: '1%', paddingBottom: Platform.OS === 'android' ? 100 : 60, justifyContent: 'space-between', flexDirection: 'row', flexWrap: 'wrap'}} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={isLoading} tintColor={stylesheet.Primary} colors={[stylesheet.Primary]} onRefresh={load} />}>
@@ -311,10 +345,10 @@ export default function DistributorComponent({navigation, route}) {
             <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>Timelapse of Inventory</Text>
             <LineChart
               data={{
-                labels: inventory.map(lin => lin.date).reverse(),
+                labels: projections ? [...inventory.map(lin => lin.date).reverse().slice(-4), moment(projections[14].date).format("MM/DD")] : inventory.map(lin => lin.date).reverse().slice(-5),
                 datasets: [
                   {
-                    data: inventory.map(lin => lin.totalCount).reverse()
+                    data: projections ? [...inventory.map(lin => lin.totalCount).reverse().slice(-4), projections[14].amount] : inventory.map(lin => lin.totalCount).reverse().slice(-5)
                   }
                 ]
               }}
@@ -519,8 +553,13 @@ export default function DistributorComponent({navigation, route}) {
           </>
         }
       </ScrollView>
+
+      <TouchableOpacity onPress={() => actionSheetRef.current?.setModalVisible(true)} style={[styles.center, styles.fab]}>
+        <Feather name="sliders" size={22} color={stylesheet.SecondaryTint} />
+      </TouchableOpacity>
+
       <ActionSheet containerStyle={{paddingBottom: 20, backgroundColor: stylesheet.Secondary}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} ref={actionSheetRef}>
-        <View>
+        <View style={{marginBottom: 30}}>
           {
             line === 'herencia' &&
             <View style={[styles.defaultColumnContainer, styles.fullWidth]}>
@@ -699,12 +738,59 @@ export default function DistributorComponent({navigation, route}) {
               </TouchableOpacity>
             }
             <TouchableOpacity
-              onPress={() => navigation.navigate('DistributorDepth', {identifier: route.params.identifier, company: route.params.company})}
-              underlayColor='#fff'
-              style={{marginLeft: 10, marginRight: 10}}>
-              <Feather name="file-plus" size={26} color={stylesheet.Primary} />
+              onPress={() => {infoSheetRef.current?.setModalVisible(false); setTimeout(() => herenciaUpkeepSheetRef.current?.setModalVisible(true), 500)}}
+              underlayColor='#fff'>
+              <Feather name="layout" size={24} color={stylesheet.Primary} />
             </TouchableOpacity>
           </View>
+        </View>
+      </ActionSheet>
+      <ActionSheet containerStyle={{paddingBottom: 20, backgroundColor: stylesheet.Secondary}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} ref={herenciaUpkeepSheetRef}>
+        <View style={{padding: 20}}>
+          <Text style={[styles.baseText, styles.bold, styles.marginWidth, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>Herencia del Abuelo Displays</Text>
+          <TextInput
+            style={[{marginTop: 10,  marginBottom: 40}, styles.baseInput]}
+            placeholder="Enter amount..."
+            value={info?.herencia_displays?.toString()}
+            keyboardType={"numeric"}
+            onChangeText={(text) => setInfo({...info, herencia_displays: text})}
+          />
+
+          <Text style={[styles.baseText, styles.bold, styles.marginWidth, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>How Visible are the Displays?</Text>
+
+          <TouchableOpacity style={[styles.paddedWidth, {marginTop: 10, marginBottom: 10}]} onPress={() => setInfo({...info, herencia_visibility: 5})}>
+            <Text style={[styles.baseText, styles.tertiary, {opacity: info?.herencia_visibility == 5 ? 0.2 : 1}]}>Next to Register</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.paddedWidth, {marginTop: 10, marginBottom: 10}]} onPress={() => setInfo({...info, herencia_visibility: 4})}>
+            <Text style={[styles.baseText, styles.tertiary, {opacity: info?.herencia_visibility == 4 ? 0.2 : 1}]}>By Register</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.paddedWidth, {marginTop: 10, marginBottom: 10}]} onPress={() => setInfo({...info, herencia_visibility: 3})}>
+            <Text style={[styles.baseText, styles.tertiary, {opacity: info?.herencia_visibility == 3 ? 0.2 : 1}]}>In Lane</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.paddedWidth, {marginTop: 10, marginBottom: 10}]} onPress={() => setInfo({...info, herencia_visibility: 2})}>
+            <Text style={[styles.baseText, styles.tertiary, {opacity: info?.herencia_visibility == 2 ? 0.2 : 1}]}>Close to Lane</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.paddedWidth, {marginTop: 10, marginBottom: 10}]} onPress={() => setInfo({...info, herencia_visibility: 1})}>
+            <Text style={[styles.baseText, styles.tertiary, {opacity: info?.herencia_visibility == 1 ? 0.2 : 1}]}>Stored Away</Text>
+          </TouchableOpacity>
+
+          <Text style={[styles.baseText, styles.bold, styles.marginWidth, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>How many lanes are there in total?</Text>
+
+          <TextInput
+            style={[{marginTop: 10,  marginBottom: 40}, styles.baseInput]}
+            placeholder="Enter amount..."
+            value={info?.dist_lanes?.toString()}
+            keyboardType={"numeric"}
+            onChangeText={(text) => setInfo({...info, dist_lanes: text})}
+          />
+
+
+          {
+            info?.herencia_displays && info?.herencia_visibility &&
+            <TouchableOpacity onPress={onUpdateHerenciaUpkeep} style={[styles.roundedButton, styles.filled, {marginLeft: '7.5%', marginTop: 40}]}>
+              <Text style={styles.secondary}>Update</Text>
+            </TouchableOpacity>
+          }
         </View>
       </ActionSheet>
     </SafeAreaView>

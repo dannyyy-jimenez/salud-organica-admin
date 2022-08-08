@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Linking, Platform, ScrollView, Share, TextInput, RefreshControl, StyleSheet, Text, View, TouchableOpacity, SafeAreaView } from 'react-native';
+import { Linking, Platform, ScrollView, Share, Pressable, TextInput, RefreshControl, StyleSheet, Text, View, TouchableOpacity, SafeAreaView } from 'react-native';
 import LottieView from 'lottie-react-native';
 import { MaterialIcons, Ionicons, Feather } from '@expo/vector-icons';
 import ActionSheet from "react-native-actions-sheet";
@@ -40,7 +40,7 @@ class Distributor {
       lng: this.location.longitude
     }
 
-    return haversine(coords, user) // returns distance in km
+    return haversine(coords, user) / 3961 // returns distance in km
   }
 
 }
@@ -53,11 +53,19 @@ export default function Distributors({navigation}) {
   const [filters, setFilters] = React.useState({
     sort: 'nearest'
   });
-  const [routeLetter, setRouteLetter] = React.useState(null)
+  const [routeLetter, setRouteLetter] = React.useState("")
   const [location, setLocation] = React.useState(null);
-  const [sortBy, setSortBy] = React.useState("newest");
+  const [sortBy, setSortBy] = React.useState("default");
   const [nearest, setNearest] = React.useState(null);
   const [search, setSearch] = React.useState("")
+  const [needAttention, setNeedAttention] = React.useState([])
+  const [routeLetters, setRouteLetters] = React.useState([])
+
+  const [routeMode, setRouteMode] = React.useState({
+    active: false,
+    total: 0,
+    current: 0
+  })
 
   // new dist
 
@@ -94,31 +102,46 @@ export default function Distributors({navigation}) {
     setDistributors([])
     setDefaultDistributors([])
     try {
-      const res = await Api.get('/admin/distributors', {route: routeLetter});
+      const res = await Api.get('/admin/distributors', {route: ''});
 
       if (res.isError) throw res;
-      let dists = res.data._d.map(distributor => new Distributor(distributor.identifier, distributor.company, distributor.managers, distributor.address, distributor.lines, distributor.lat, distributor.lng, distributor.status, distributor.route, loc ? loc.coords : location.coords)).sort((a, b) => {
-        let letterA = a.route.split("")[0]
-        let letterB = b.route.split("")[0]
 
-        if (letterA  === letterB) {
-          if (parseInt(a.route.slice(1)) > parseInt(b.route.slice(1))) return 1
-          if (parseInt(a.route.slice(1)) < parseInt(b.route.slice(1))) return -1
+      let dists = []
 
+      if (sortBy === 'default') {
+        dists = res.data._d.map(distributor => new Distributor(distributor.identifier, distributor.company, distributor.managers, distributor.address, distributor.lines, distributor.lat, distributor.lng, distributor.status, distributor.route, loc ? loc.coords : location.coords)).sort((a, b) => {
+          let letterA = a.route.split("")[0]
+          let letterB = b.route.split("")[0]
+
+          if (letterA  === letterB) {
+            if (parseInt(a.route.slice(1)) > parseInt(b.route.slice(1))) return 1
+            if (parseInt(a.route.slice(1)) < parseInt(b.route.slice(1))) return -1
+
+            return 0
+          } else  {
+            if (letterA > letterB) return 1
+            if (letterA  < letterB) return -1
+
+            return 0
+          }
           return 0
-        } else  {
-          if (letterA > letterB) return 1
-          if (letterA  < letterB) return -1
-
-          return 0
+        })
+        let uniqueRoutes = [""]
+        for (let l of res.data._d.map(d => d.routeLetter).sort()) {
+          if (!uniqueRoutes.includes(l)) {
+            uniqueRoutes.push(l)
+          }
         }
-        return 0
-      })
+        setRouteLetters(uniqueRoutes)
+      } else if (sortBy === 'urgency') {
+        dists = res.data._d.map(distributor => new Distributor(distributor.identifier, distributor.company, distributor.managers, distributor.address, distributor.lines, distributor.lat, distributor.lng, distributor.status, distributor.route, loc ? loc.coords : location.coords)).sort((a, b) => b.status - a.status)
+      }
+
       setDefaultDistributors(dists)
       setDistributors(dists)
-      setNearest(dists.slice().sort((a, b) => a.distance - b.distance)[0])
       setIsLoading(false)
     } catch (e) {
+      console.log(e)
       setIsLoading(false)
     }
   }
@@ -198,9 +221,60 @@ export default function Distributors({navigation}) {
     }
   }
 
+  const FormatStatus = (status) => {
+    if (status < 2) {
+      return 'Excellent'
+    } else if (status > 21) {
+      return `Urgent - ${status}`
+    } else if (status > 7) {
+      return 'Follow Up'
+    } else if (status > 5)  {
+      return 'So-So'
+    }
+
+    return 'Good'
+  }
+
+  const GetUrgencyColor = (status) => {
+    if (status < 2) {
+      return stylesheet.Primary
+    } else if (status > 21) {
+      return 'darkred'
+    } else if (status > 7) {
+      return 'lightseagreen'
+    } else if (status > 5)  {
+      return 'darkgreen'
+    }
+
+    return stylesheet.Primary
+  }
+
+  const FormatRouteLetter = (letter) => {
+    if (letter == 'A') {
+      return 'Chicago'
+    } else if (letter == 'B') {
+      return 'Waukegan'
+    } else if (letter == 'C') {
+      return 'Joliet'
+    } else if (letter == 'D') {
+      return 'Elgin'
+    } else if (letter == 'E') {
+      return 'Aurora'
+    } else if (letter == 'F') {
+      return 'Evergreen'
+    } else if (letter == 'G') {
+      return 'Northside'
+    } else if (letter == 'H') {
+      return 'New York TBD'
+    } 
+
+
+    return 'All';
+  }
+
   React.useEffect(() => {
     load(location)
-  }, [routeLetter])
+  }, [sortBy])
 
   React.useEffect(() => {
     if (isLoading) {
@@ -210,146 +284,318 @@ export default function Distributors({navigation}) {
   }, [isLoading])
 
   React.useEffect(() => {
+    if (search === 'OVRD') {
+      setDistributors(needAttention)
+      return;
+    }
     setDistributors(defaultDistributors.filter(dist => dist.company.toLowerCase().replaceAll(/[\"'!@#$%^&*()ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž ]/g, "").includes(search.toLowerCase().replaceAll(/[\"'!@#$%^&*()ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž ]/g, ""))))
   }, [search])
+
+  React.useEffect(() => {
+    setNeedAttention(distributors.filter(d => d.status > 21))
+    let sortedByDistance = distributors.slice().sort((a, b) => a.distance - b.distance);
+    if (sortedByDistance.length > 0 && sortedByDistance[0].distance < 0.0804672) {
+      setNearest(sortedByDistance[0])
+    } else {
+      setNearest(null)
+    }
+  }, [distributors])
+
+  React.useEffect(() => {
+    if (routeLetter === "") {
+      setRouteMode({
+        active: false,
+        current: 0,
+        total: 0
+      })
+      setDistributors(defaultDistributors)
+      return;
+    }
+    setDistributors(defaultDistributors.slice().filter(dist => dist.route.includes(routeLetter)))
+  }, [routeLetter])
+
+  const ToggleRouteMode = () => {
+    if (routeMode.active) {
+      setRouteMode({
+        active: false,
+        current: 0,
+        total: 0
+      })
+    } else {
+      setRouteMode({
+        active: true,
+        current: 0,
+        total: distributors.length
+      })
+    }
+  }
+
+  const findNextRoute = () => {
+    setRouteMode(prevState => {
+      return {
+        active: true,
+        current: prevState.current + 1,
+        total: distributors.length
+      }
+    })
+  }
 
   return (
     <SafeAreaView style={styles.defaultTabContainer}>
       <View style={styles.defaultTabHeader}>
-        <TouchableOpacity
-          onPress={() => actionSheetRef.current?.setModalVisible(true)}
-          underlayColor='#fff'>
-          <MaterialIcons name="sort" size={24} color={stylesheet.Primary} />
-        </TouchableOpacity>
+        {
+          routeMode.active && routeMode.current < routeMode.total &&
+          <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Route Mode: {FormatRouteLetter(routeLetter)} ({routeMode.current + 1} / {routeMode.total}) </Text>
+        }
+        {
+          routeMode.active && routeMode.current == routeMode.total &&
+          <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Route Mode: {FormatRouteLetter(routeLetter)} FINISHED</Text>
+        }
+        {
+          !routeMode.active &&
+          <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Retailers {routeLetter ? `(Route ${routeLetter})` : ''} ({distributors.length})</Text>
+        }
         <View style={styles.spacer}></View>
-        <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Retailers {routeLetter ? `(Route ${routeLetter})` : ''} ({distributors.length})</Text>
-        <View style={styles.spacer}></View>
+        {
+          routeLetter !== "" &&
+          <TouchableOpacity
+            onPress={() => ToggleRouteMode()}
+            underlayColor='#fff' style={{marginRight: 10}}>
+            <Ionicons name="car-sport" size={24} color={stylesheet.Primary} />
+          </TouchableOpacity>
+        }
         <TouchableOpacity
-          onPress={() => createSheetRef.current?.setModalVisible(true)}
+          onPress={() => navigation.navigate("DistributorsMap", {letter: routeLetter})}
           underlayColor='#fff'>
-          <Feather name="plus" size={24} color={stylesheet.Primary} />
+          <Feather name="map-pin" size={24} color={stylesheet.Primary} />
         </TouchableOpacity>
       </View>
-      <ScrollView style={styles.defaultTabScrollContent} contentContainerStyle={{alignItems: 'flex-start', justifyContent: 'flex-start', width: '90%', marginLeft: '5%', paddingBottom: 70}} refreshControl={<RefreshControl refreshing={isLoading} tintColor={stylesheet.Primary} colors={[stylesheet.Primary]} onRefresh={load} />}>
         {
-          isLoading &&
-          <LottieView
-              ref={animationRef}
-              style={{
-                width: '100%',
-                backgroundColor: '#fff',
-              }}
-              source={require('..//assets/9511-loading.json')}
-              // OR find more Lottie files @ https://lottiefiles.com/featured
-              // Just click the one you like, place that file in the 'assets' folder to the left, and replace the above 'require' statement
-            />
-        }
-        <TextInput
-          style={[{marginTop: 5,  marginBottom: 20, width: '100%'}, styles.baseInput]}
-          placeholder="Search"
-          numberOfLines={1}
-          value={search}
-          onChangeText={(text) => setSearch(text)}
-        />
-        {
-          filters.sort === 'nearest' && !isLoading &&
-          <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Nearest</Text>
+          routeMode.active && routeMode.current == routeMode.total &&
+          <View style={[styles.defaultTabScrollContent, {alignItems: 'flex-start', justifyContent: 'flex-start', width: '90%', marginLeft: '5%', paddingBottom: 70}]}>
+            {
+              <LottieView
+                  ref={animationRef}
+                  style={{
+                    width: '100%',
+                    backgroundColor: '#fff',
+                  }}
+                  loop
+                  autoPlay
+                  source={require('../assets/33886-check-okey-done.json')}
+                  // OR find more Lottie files @ https://lottiefiles.com/featured
+                  // Just click the one you like, place that file in the 'assets' folder to the left, and replace the above 'require' statement
+                />
+            }
+          </View>
         }
         {
-          nearest &&
-          <>
-            <TouchableOpacity activeOpacity={nearest.fulfilled ? 0.3 : 1} key={nearest.identifier} onPress={() => navigation.navigate('DistributorView', {identifier: nearest.identifier, company: nearest.company})} onLongPress={() => openMaps(nearest)} style={[styles.fullStoreCard]}>
-              <View style={styles.defaultColumnContainer, styles.fullWidth, styles.fullSCContent}>
-                <View style={[styles.defaultRowContainer, styles.fullWidth]}>
-                  <View style={[styles.defaultColumnContainer]}>
-                    <Text numberOfLines={1} style={[styles.baseText, styles.nunitoText, styles.tertiary, {marginBottom: 2}]}>{nearest.company}</Text>
-                  </View>
-                  <View style={styles.spacer}></View>
-                  <View style={[styles.defaultColumnContainer]}>
-                    <Text style={[styles.tinyText, styles.tertiary, styles.opaque, {marginTop: 2}]}>{nearest.route}</Text>
-                  </View>
+          routeMode.active && routeMode.current < routeMode.total &&
+          <View style={[styles.defaultTabScrollContent, {alignItems: 'flex-start', justifyContent: 'flex-start', width: '90%', marginLeft: '5%', paddingBottom: 70}]}>
+            {
+              <TouchableOpacity key={distributors[routeMode.current].identifier} onPress={() => navigation.navigate('DistributorView', {identifier: distributors[routeMode.current], company: distributors[routeMode.current]})} style={[styles.fullStoreCard, styles.elevated]}>
+                <View style={[styles.defaultColumnContainer, styles.fullWidth, styles.fullSCContent, {borderBottomRightRadius: 0, borderBottomLeftRadius: 0, backgroundColor: "#FCFCFC"}]}>
+                  <Text style={[styles.tinyText, styles.bold, {opacity: 0.5}, styles.center]}>{distributors[routeMode.current].address}</Text>
+                  <Text numberOfLines={1} style={[styles.subHeaderText, styles.nunitoText, styles.tertiary, {marginTop: 20, marginBottom: 20}]}>{distributors[routeMode.current].company}</Text>
                 </View>
-                <View style={[styles.spacer, styles.defaultColumnContainer, styles.fullWidth, {alignItems: 'flex-start', marginTop: 10}]}>
-                  <Text style={[styles.tinyText, styles.primary, styles.bold, styles.center]}>
-                    {
-                      nearest.managers.join(', ')
-                    }
-                  </Text>
-                  <Text style={[styles.tinyText, styles.primary, styles.bold, styles.center]}>{nearest.address}</Text>
-                </View>
-                <View style={{position: 'absolute', right: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopLeftRadius: 5, borderBottomRightRadius: 5, backgroundColor: stylesheet.Primary}}>
-                  <Text style={[styles.tinyText, styles.secondary, {marginTop: 2}]}>{nearest.status}</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          </>
-        }
-        {
-          !isLoading &&
-          <Text style={[styles.baseText, styles.bold, styles.tertiary]}>By Numeration</Text>
-        }
-        {
-          distributors.map((distributor, idx) => {
-            return (
-              <>
-                <TouchableOpacity activeOpacity={distributor.fulfilled ? 0.3 : 1} key={distributor.identifier} onPress={() => navigation.navigate('DistributorView', {identifier: distributor.identifier, company: distributor.company})} style={[styles.fullStoreCard]}>
-                  <View style={[styles.defaultColumnContainer, styles.fullWidth, styles.fullSCContent, {borderBottomRightRadius: 0, borderBottomLeftRadius: 0, backgroundColor: "#FCFCFC"}]}>
-                    <View style={[styles.defaultRowContainer, styles.fullWidth]}>
-                      <View style={[styles.defaultColumnContainer]}>
-                        <Text numberOfLines={1} style={[styles.baseText, styles.nunitoText, styles.tertiary, {marginBottom: 2}]}>{distributor.company}</Text>
-                      </View>
-                      <View style={styles.spacer}></View>
-                      <View style={[styles.defaultColumnContainer]}>
-                        <Text style={[styles.tinyText, styles.tertiary, styles.opaque, {marginTop: 2}]}>{distributor.route}</Text>
-                      </View>
+                <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {padding: 10, backgroundColor: '#F9F9F9', borderBottomLeftRadius: 10, borderBottomRightRadius: 10}]}>
+                  <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => openMaps(distributors[routeMode.current])}>
+                    <Feather name="map-pin" size={28} color="black" />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => findNextRoute()}>
+                    <Feather name="check" size={28} color="black" />
+                  </TouchableOpacity>
+                  {
+                    distributors[routeMode.current].status > 5 &&
+                    <View style={{position: 'absolute', left: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopRightRadius: 5, borderBottomLeftRadius: 5, backgroundColor: GetUrgencyColor(distributors[routeMode.current].status)}}>
+                      <Text style={[styles.tinyText, styles.secondary, {marginTop: 2}]}>{FormatStatus(distributors[routeMode.current].status)}</Text>
                     </View>
-                    <View style={[styles.spacer, styles.defaultColumnContainer, styles.fullWidth, {alignItems: 'flex-start', marginTop: 10}]}>
-                      <Text style={[styles.tinyText, styles.primary, styles.bold, styles.center]}>
-                        {
-                          distributor.managers.join(', ')
-                        }
-                      </Text>
-                      <Text style={[styles.tinyText, styles.primary, styles.bold, styles.center]}>{distributor.address}</Text>
+                  }
+                </View>
+              </TouchableOpacity>
+          }
+          {
+            distributors.slice(routeMode.current + 1).map((distributor, idx) => {
+              return (
+                <>
+                  <View key={distributor.identifier} onPress={() => navigation.navigate('DistributorView', {identifier: distributor.identifier, company: distributor.company})} style={[styles.fullStoreCard, {opacity: 0.2}]}>
+                    <View style={[styles.defaultColumnContainer, styles.fullWidth, styles.fullSCContent, {borderBottomRightRadius: 0, borderBottomLeftRadius: 0, backgroundColor: "#FCFCFC"}]}>
+                      <Text style={[styles.tinyText, styles.bold, {opacity: 0.5}, styles.center]}>{distributor.address}</Text>
+                      <Text numberOfLines={1} style={[styles.subHeaderText, styles.nunitoText, styles.tertiary, {marginTop: 20, marginBottom: 20}]}>{distributor.company}</Text>
                     </View>
-                    <View style={{position: 'absolute', right: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopLeftRadius: 5, backgroundColor: stylesheet.Primary}}>
-                      <Text style={[styles.tinyText, styles.secondary, {marginTop: 2}]}>{distributor.status}</Text>
+                    <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {padding: 10, backgroundColor: '#F9F9F9', borderBottomLeftRadius: 10, borderBottomRightRadius: 10}]}>
+                      <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => openMaps(distributor)}>
+                        <Feather name="map-pin" size={28} color="black" />
+                      </TouchableOpacity>
+                      {
+                        distributor.status > 5 &&
+                        <View style={{position: 'absolute', left: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopRightRadius: 5, borderBottomLeftRadius: 5, backgroundColor: GetUrgencyColor(distributor.status)}}>
+                          <Text style={[styles.tinyText, styles.secondary, {marginTop: 2}]}>{FormatStatus(distributor.status)}</Text>
+                        </View>
+                      }
                     </View>
                   </View>
-                  <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {padding: 10, backgroundColor: '#F9F9F9', borderBottomLeftRadius: 10, borderBottomRightRadius: 10}]}>
-                    <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => openMaps(distributor)}>
-                      <Feather name="map-pin" size={28} color="black" />
-                    </TouchableOpacity>
-                  </View>
+                </>
+              )
+            })
+          }
+        </View>
+      }
+      {
+        !routeMode.active &&
+        <ScrollView style={styles.defaultTabScrollContent} contentContainerStyle={{alignItems: 'flex-start', justifyContent: 'flex-start', width: '90%', marginLeft: '5%', paddingBottom: 70}} refreshControl={<RefreshControl refreshing={isLoading} tintColor={stylesheet.Primary} colors={[stylesheet.Primary]} onRefresh={load} />}>
+          {
+            isLoading &&
+            <LottieView
+                ref={animationRef}
+                style={{
+                  width: '100%',
+                  backgroundColor: '#fff',
+                }}
+                source={require('..//assets/9511-loading.json')}
+                // OR find more Lottie files @ https://lottiefiles.com/featured
+                // Just click the one you like, place that file in the 'assets' folder to the left, and replace the above 'require' statement
+              />
+          }
+          <TextInput
+            style={[{marginTop: 5,  marginBottom: 20, width: '100%'}, styles.baseInput]}
+            placeholder="Search"
+            placeholderTextColor={stylesheet.Tertiary}
+            numberOfLines={1}
+            value={search}
+            onChangeText={(text) => setSearch(text)}
+          />
+          {
+            nearest && filters.sort === 'nearest' && !isLoading &&
+            <>
+              <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Nearest</Text>
+              <TouchableOpacity activeOpacity={nearest.fulfilled ? 0.3 : 1} key={nearest.identifier} onPress={() => navigation.navigate('DistributorView', {identifier: nearest.identifier, company: nearest.company})} style={[styles.fullStoreCard, styles.elevated]}>
+                <View style={[styles.defaultColumnContainer, styles.fullWidth, styles.fullSCContent, {borderBottomRightRadius: 0, borderBottomLeftRadius: 0, backgroundColor: "#FCFCFC"}]}>
+                  <Text style={[styles.tinyText, styles.bold, {opacity: 0.5}, styles.center]}>{nearest.address}</Text>
+                  <Text numberOfLines={1} style={[styles.subHeaderText, styles.nunitoText, styles.tertiary, {marginTop: 20, marginBottom: 20}]}>{nearest.company}</Text>
+                </View>
+                <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {padding: 10, backgroundColor: '#F9F9F9', borderBottomLeftRadius: 10, borderBottomRightRadius: 10}]}>
+                  <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => openMaps(nearest)}>
+                    <Feather name="map-pin" size={28} color="black" />
+                  </TouchableOpacity>
+                  {
+                    nearest.status > 5 &&
+                    <View style={{position: 'absolute', left: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopRightRadius: 5, borderBottomLeftRadius: 5, backgroundColor: GetUrgencyColor(nearest.status)}}>
+                      <Text style={[styles.tinyText, styles.secondary, {marginTop: 2}]}>{FormatStatus(nearest.status)}</Text>
+                    </View>
+                  }
+                </View>
+              </TouchableOpacity>
+            </>
+          }
+          <View style={[styles.defaultRowContainer, styles.fullWidth, styles.justifyCenter, {marginBottom: 20, marginTop: 5, height: 'auto'}]}>
+            {
+              needAttention.length > 0 &&
+              <View style={[styles.analyticCard, styles.elevated, {backgroundColor: '#FF3131'}]}>
+                <Text style={[styles.subHeaderText, styles.bold, styles.secondary]}>Need Attention</Text>
+
+                <View style={[styles.fullWidth, styles.defaultColumnContainer]}>
+                  <Text style={[styles.tinyText, styles.bold, styles.secondary, styles.opaque]}>Amount</Text>
+                  <Text style={[styles.headerText, styles.bold, styles.secondary, {marginTop: 5}]}>{needAttention.length}</Text>
+                </View>
+
+                <TouchableOpacity onPress={() => setSearch('OVRD')} style={[styles.marginWidth, styles.center, styles.defaultRowContainer, {padding: 10, borderRadius: 5, backgroundColor: "#FF6565"}]}>
+                  <Text style={[styles.tinyText, styles.bold, styles.secondary]}>View Details</Text>
                 </TouchableOpacity>
-              </>
-            )
-          })
-        }
-      </ScrollView>
-      <ActionSheet containerStyle={{paddingBottom: 20, backgroundColor: stylesheet.Secondary}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} ref={actionSheetRef}>
-        <View>
+              </View>
+            }
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.defaultRowContainer, styles.fullWidth, styles.justifyCenter, {paddingTop: 15, paddingLeft: 15, paddingBottom: 15, paddingRight: 15, height: 'auto'}]}>
+            {
+              routeLetters.map(letter => {
+                return (
+                  <Pressable onPress={() => setRouteLetter(letter)} style={[styles.chip, styles.elevated, routeLetter === letter ? {backgroundColor: stylesheet.Primary} : {}]}>
+                    <Text style={[styles.subHeaderText, styles.bold, routeLetter === letter ? {color: 'white'} : styles.tertiary]}>{FormatRouteLetter(letter)}</Text>
+                  </Pressable>
+                )
+              })
+            }
+          </ScrollView>
+          {
+            !isLoading && sortBy == 'urgency' &&
+            <Text style={[styles.baseText, styles.bold, styles.tertiary]}>By Urgency</Text>
+          }
+          {
+            distributors.map((distributor, idx) => {
+              return (
+                <>
+                  <TouchableOpacity activeOpacity={distributor.fulfilled ? 0.3 : 1} key={distributor.identifier} onPress={() => navigation.navigate('DistributorView', {identifier: distributor.identifier, company: distributor.company})} style={[styles.fullStoreCard, styles.elevated]}>
+                    <View style={[styles.defaultColumnContainer, styles.fullWidth, styles.fullSCContent, {borderBottomRightRadius: 0, borderBottomLeftRadius: 0, backgroundColor: "#FCFCFC"}]}>
+                      <Text style={[styles.tinyText, styles.bold, {opacity: 0.5}, styles.center]}>{distributor.address}</Text>
+                      <Text numberOfLines={1} style={[styles.subHeaderText, styles.nunitoText, styles.tertiary, {marginTop: 20, marginBottom: 20}]}>{distributor.company}</Text>
+                    </View>
+                    <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {padding: 10, backgroundColor: '#F9F9F9', borderBottomLeftRadius: 10, borderBottomRightRadius: 10}]}>
+                      <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => openMaps(distributor)}>
+                        <Feather name="map-pin" size={28} color="black" />
+                      </TouchableOpacity>
+                      {
+                        distributor.status > 5 &&
+                        <View style={{position: 'absolute', left: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopRightRadius: 5, borderBottomLeftRadius: 5, backgroundColor: GetUrgencyColor(distributor.status)}}>
+                          <Text style={[styles.tinyText, styles.secondary, {marginTop: 2}]}>{FormatStatus(distributor.status)}</Text>
+                        </View>
+                      }
+                    </View>
+                  </TouchableOpacity>
+                </>
+              )
+            })
+          }
+        </ScrollView>
+      }
+      <TouchableOpacity onPress={() => createSheetRef.current?.setModalVisible(true)} style={[styles.center, styles.fab]}>
+        <Feather name="plus" size={32} color={stylesheet.SecondaryTint} />
+      </TouchableOpacity>
+      <ActionSheet containerStyle={{paddingBottom: 40, backgroundColor: stylesheet.Secondary}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} ref={actionSheetRef}>
+        <View style={{marginBottom: 50}}>
+          <Text style={[styles.baseText, styles.fullWidth, styles.bold, styles.centerText, styles.tertiary, {marginTop: 10}]}>Sort By</Text>
           <View style={styles.line}></View>
           <View style={[styles.paddedWidth, styles.defaultColumnContainer]}>
-            <Text style={[styles.baseText, styles.fullWidth, styles.bold, styles.centerText, styles.tertiary, {marginTop: 10}]}>Sort By</Text>
-            <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Route Letter</Text>
-            <Picker
-              style={{marginTop: 0}}
-              selectedValue={routeLetter}
-              onValueChange={(itemValue, itemIndex) =>
-                setRouteLetter(itemValue)
-              }>
-              <Picker.Item label="Any" value={null} />
-              <Picker.Item label="A (Chicago)" value="A" />
-              <Picker.Item label="B (Waukegan)" value="B" />
-              <Picker.Item label="C (Joliet)" value="C" />
-              <Picker.Item label="D (Elgin)" value="D" />
-              <Picker.Item label="E (Aurora)" value="E" />
-              <Picker.Item label="F (Evergreen)" value="F" />
-            </Picker>
+            <TouchableOpacity onPress={() => setSortBy('default')}>
+              <Text style={[styles.baseText, styles.tertiary, {marginTop: 10}, {opacity: sortBy == 'default' ? 0.2 : 1}]}>
+                Default
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => setSortBy('urgency')}>
+              <Text style={[styles.baseText, styles.tertiary, {marginTop: 30}, {opacity: sortBy == 'urgency' ? 0.2 : 1}]}>
+                Urgency
+              </Text>
+            </TouchableOpacity>
+
+            {/* <Text style={[styles.baseText, styles.bold, styles.tertiary, {marginTop: 30}]}>Route Letter</Text>
+            <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setRouteLetter(null)}}>
+              <Text style={[styles.baseText, styles.tertiary, {opacity: !routeLetter ? 0.2 : 1}]}>Any</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setRouteLetter('A')}}>
+              <Text style={[styles.baseText, styles.tertiary, {opacity: routeLetter == 'A' ? 0.2 : 1}]}>A (Chicago)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setRouteLetter('B')}}>
+              <Text style={[styles.baseText, styles.tertiary, {opacity: routeLetter == 'B' ? 0.2 : 1}]}>B (Waukegan)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setRouteLetter('C')}}>
+              <Text style={[styles.baseText, styles.tertiary, {opacity: routeLetter == 'C' ? 0.2 : 1}]}>C (Joliet)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setRouteLetter('D')}}>
+              <Text style={[styles.baseText, styles.tertiary, {opacity: routeLetter == 'D' ? 0.2 : 1}]}>D (Elgin)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setRouteLetter('E')}}>
+              <Text style={[styles.baseText, styles.tertiary, {opacity: routeLetter == 'E' ? 0.2 : 1}]}>E (Aurora)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setRouteLetter('F')}}>
+              <Text style={[styles.baseText, styles.tertiary, {opacity: routeLetter == 'F' ? 0.2 : 1}]}>F (Evergreen)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setRouteLetter('G')}}>
+              <Text style={[styles.baseText, styles.tertiary, {opacity: routeLetter == 'G' ? 0.2 : 1}]}>G (Northside)</Text>
+            </TouchableOpacity> */}
           </View>
         </View>
       </ActionSheet>
-      <ActionSheet containerStyle={{paddingBottom: 20, backgroundColor: stylesheet.Secondary}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} ref={createSheetRef}>
+      <ActionSheet containerStyle={{paddingBottom: 40, backgroundColor: stylesheet.Secondary}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} ref={createSheetRef}>
         <View>
           <View style={[styles.defaultRowContainer, styles.fullWidth]}>
             {
@@ -402,22 +648,17 @@ export default function Distributors({navigation}) {
             {
               newSection === 0 &&
               <>
-                <Picker
-                  style={{marginTop: 0}}
-                  selectedValue={routeLetter}
-                  onValueChange={(itemValue, itemIndex) => {
-                      setNewRouteLetter(itemValue)
-                      setNewSection(1)
-                    }
-                  }>
-                  <Picker.Item label="None" value="" disabled={true} />
-                  <Picker.Item label="A (Chicago)" value="A" />
-                  <Picker.Item label="B (Waukegan)" value="B" />
-                  <Picker.Item label="C (Joliet)" value="C" />
-                  <Picker.Item label="D (Elgin)" value="D" />
-                  <Picker.Item label="E (Aurora)" value="E" />
-                  <Picker.Item label="F (Evergreen)" value="F" />
-                </Picker>
+                <ScrollView style={{height: 200}}>
+                  {
+                    routeLetters.slice(1).map(letter => {
+                      return (
+                        <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setNewRouteLetter(letter); setNewSection(1)}}>
+                          <Text style={[styles.baseText, styles.tertiary]}>{letter} ({FormatRouteLetter(letter)})</Text>
+                        </TouchableOpacity>
+                      )
+                    })
+                  }
+                </ScrollView>
               </>
             }
             {
@@ -488,7 +729,7 @@ export default function Distributors({navigation}) {
             {
               newSection === 3 &&
               <>
-                <View style={[styles.defaultRowContainer]}>
+                <View style={[styles.defaultRowContainer, {marginBottom: 40}]}>
                   <Checkbox
                     style={styles.checkbox}
                     value={lines.includes('herencia')}
@@ -526,19 +767,23 @@ export default function Distributors({navigation}) {
             {
               newSection === 4 &&
               <>
-                <Picker
-                  style={{marginTop: 0}}
-                  selectedValue={stateCode}
-                  onValueChange={(itemValue, itemIndex) => {
-                      setStateCode(itemValue)
-                      setNewSection(5)
-                    }
-                  }>
-                  <Picker.Item label="Select..." value="" enabled={false} />
-                  <Picker.Item label="Illinois" value="IL" />
-                  <Picker.Item label="Wisconsin" value="WI" />
-                  <Picker.Item label="Indiana" value="IN" />
-                </Picker>
+                <ScrollView style={{height: 200, marginBottom: 20}}>
+                  <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setStateCode("IL"); setNewSection(5)}}>
+                    <Text style={[styles.baseText, styles.tertiary]}>Illinois</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setStateCode("WI"); setNewSection(5)}}>
+                    <Text style={[styles.baseText, styles.tertiary]}>Wisconsin</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setStateCode("IN"); setNewSection(5)}}>
+                    <Text style={[styles.baseText, styles.tertiary]}>Indiana</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setStateCode("NY"); setNewSection(5)}}>
+                    <Text style={[styles.baseText, styles.tertiary]}>New York</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setStateCode("NJ"); setNewSection(5)}}>
+                    <Text style={[styles.baseText, styles.tertiary]}>New Jersey</Text>
+                  </TouchableOpacity>
+                </ScrollView>
               </>
             }
             {
