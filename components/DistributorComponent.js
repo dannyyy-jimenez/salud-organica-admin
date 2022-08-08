@@ -565,6 +565,7 @@ export default function DistributorComponent({navigation, route}) {
             <View style={[styles.defaultColumnContainer, styles.fullWidth]}>
               <Text style={[styles.baseText, styles.bold, styles.marginWidth, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>Notes</Text>
               <TextInput
+                placeholderTextColor="#888"
                 multiline={true}
                 style={[{marginTop: 5,  marginBottom: 20}, styles.baseInput]}
                 placeholder="Enter notes here"
@@ -626,6 +627,7 @@ export default function DistributorComponent({navigation, route}) {
             <View style={[styles.defaultColumnContainer, styles.fullWidth]}>
               <Text style={[styles.baseText, styles.bold, styles.marginWidth, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>Notes</Text>
               <TextInput
+                placeholderTextColor="#888"
                 multiline={true}
                 style={[{marginTop: 10,  marginBottom: 40}, styles.baseInput]}
                 placeholder="Enter notes here"
@@ -749,6 +751,7 @@ export default function DistributorComponent({navigation, route}) {
         <View style={{padding: 20}}>
           <Text style={[styles.baseText, styles.bold, styles.marginWidth, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>Herencia del Abuelo Displays</Text>
           <TextInput
+            placeholderTextColor="#888"
             style={[{marginTop: 10,  marginBottom: 40}, styles.baseInput]}
             placeholder="Enter amount..."
             value={info?.herencia_displays?.toString()}
@@ -777,6 +780,7 @@ export default function DistributorComponent({navigation, route}) {
           <Text style={[styles.baseText, styles.bold, styles.marginWidth, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>How many lanes are there in total?</Text>
 
           <TextInput
+            placeholderTextColor="#888"
             style={[{marginTop: 10,  marginBottom: 40}, styles.baseInput]}
             placeholder="Enter amount..."
             value={info?.dist_lanes?.toString()}

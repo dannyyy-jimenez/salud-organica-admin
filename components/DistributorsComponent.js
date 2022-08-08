@@ -266,7 +266,7 @@ export default function Distributors({navigation}) {
       return 'Northside'
     } else if (letter == 'H') {
       return 'New York TBD'
-    } 
+    }
 
 
     return 'All';
@@ -666,6 +666,7 @@ export default function Distributors({navigation}) {
               <>
                 <Text style={[styles.baseText, styles.bold, styles.tertiary, {marginTop: 0}]}>First Name</Text>
                 <TextInput
+                  placeholderTextColor="#888"
                   style={[{marginTop: 10,  marginBottom: 20, width: '100%'}, styles.baseInput]}
                   placeholder="Enter first name..."
                   placeholderTextColor="#888"

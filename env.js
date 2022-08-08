@@ -2,8 +2,8 @@ import Constants from 'expo-constants';
 
 const ENV = {
   dev: {
-    baseUrl: 'http://10.1.10.102:80', // 10.0.0.102 10.1.10.102
-    apiUrl: "http://10.1.10.102:80/api/"
+    baseUrl: 'http://192.168.1.122:80', // 10.0.0.102 10.1.10.102
+    apiUrl: "http://192.168.1.122:80/api/"
   },
   staging: {
     baseUrl: 'http://10.1.10.102:80',  //10.0.0.102  10.1.10.103

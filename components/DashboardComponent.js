@@ -205,7 +205,7 @@ export default function DashboardComponent({navigation}) {
         {
           pendingOrders.length > 0 &&
           <>
-            <Text style={[styles.baseText, styles.fullWidth, styles.bold, styles.tertiary]}>Pending Online Orders</Text>
+            <Text style={[styles.baseText, styles.fullWidth, styles.bold, styles.tertiary]}>Pending Online Orders ({pendingOrders.length})</Text>
             <ScrollView contentContainerStyle={{padding: 0, margin: 0}} horizontal={true} showsHorizontalScrollIndicator={false} style={[styles.fullWidth, {marginTop: 0, marginBottom: 50, width: 'auto', height: 'auto'}]}>
               {
                 pendingOrders.map((order) => {
@@ -267,7 +267,7 @@ export default function DashboardComponent({navigation}) {
         {
           distributorsNeedingAttention.length > 0 &&
           <>
-            <Text style={[styles.baseText, styles.fullWidth, styles.bold, styles.tertiary]}>Distributors Needing Attention</Text>
+            <Text style={[styles.baseText, styles.fullWidth, styles.bold, styles.tertiary]}>Distributors Needing Attention ({distributorsNeedingAttention.length})</Text>
             <ScrollView contentContainerStyle={{padding: 0, margin: 0}} horizontal={true} showsHorizontalScrollIndicator={false} style={[styles.fullWidth, {marginTop: 0, marginBottom: 50, width: 'auto', height: 'auto'}]}>
               {
                 distributorsNeedingAttention.map((distributor, idx) => {

@@ -305,8 +305,8 @@ const Styles = StyleSheet.create({
   defaultStoreCard: {
     minHeight: 205,
     width: '40%',
-    minWidth: 100,
-    maxWidth: 220,
+    width: 180,
+    maxWidth: '98%',
     marginLeft: 5,
     marginRight: 5,
     marginTop: 8

@@ -258,12 +258,11 @@ export default function App() {
             headerBackVisible: false,
             headerBackTitle: false,
             headerShown: false,
-            tabBarShowLabel: false,
             tabBarActiveTintColor: styles.Primary,
             tabBarInactiveTintColor: '#CCC',
             tabBarActiveBackgroundColor: styles.Secondary,
             tabBarInactiveBackgroundColor: styles.Secondary,
-            tabBarShowLabel: false,
+            tabBarShowLabel: true,
             tabBarShowIcon: true,
             tabBarStyle: {
               backgroundColor: styles.Secondary,
@@ -278,11 +277,11 @@ export default function App() {
                 return <Feather name="shopping-cart" size={size} color={color} />
               } else if (route.name === 'Dashboard') {
                 return <Feather name="home" size={size} color={color} />
-              } else if (route.name === 'Inbox') {
+              } else if (route.name === 'Invoices') {
                 return <Feather name="inbox" size={size} color={color} />
               } else if (route.name === 'Visitors') {
                 return <FontAwesome5 name="users" size={size} color={color} />
-              } else if (route.name === 'Distributors') {
+              } else if (route.name === 'Retailers') {
                 return <Ionicons name="car-sport" size={size} color={color} />
               }
 
@@ -292,8 +291,8 @@ export default function App() {
           })}>
             <Tab.Screen name="Dashboard" component={DashboardStackComponent} />
             <Tab.Screen name="Orders" component={OrdersStackComponent} />
-            <Tab.Screen name="Inbox" component={InboxStackComponent} />
-            <Tab.Screen name="Distributors" component={DistributorsStackComponent} />
+            <Tab.Screen name="Invoices" component={InboxStackComponent} />
+            <Tab.Screen name="Retailers" component={DistributorsStackComponent} />
           </Tab.Navigator>
         </NavigationContainer>
       }

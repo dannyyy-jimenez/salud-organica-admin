@@ -626,6 +626,7 @@ export default function InvoicesComponent({navigation}) {
           <>
             <TextInput
               style={[{marginTop: 5,  marginBottom: 20, width: '100%'}, styles.baseInput]}
+              placeholderTextColor="#888"
               placeholder="Search"
               numberOfLines={1}
               value={search}
@@ -1099,6 +1100,7 @@ export default function InvoicesComponent({navigation}) {
                 </View>
                 <Text style={[styles.baseText, styles.bold, styles.marginWidth, styles.tertiary]}>Amount Paid</Text>
                 <TextInput
+                  placeholderTextColor="#888"
                   style={[{marginTop: 25,  marginBottom: 20, width: '100%'}, styles.baseInput]}
                   placeholder="Enter amount..."
                   keyboardType="numeric"
@@ -1109,6 +1111,7 @@ export default function InvoicesComponent({navigation}) {
                 />
                 <Text style={[styles.baseText, styles.bold, styles.marginWidth, styles.tertiary, {marginTop: 15}]}>Memo / Note</Text>
                 <TextInput
+                  placeholderTextColor="#888"
                   style={[{marginTop: 25,  marginBottom: 20, width: '100%'}, styles.baseInput]}
                   placeholder="Enter memo / note"
                   keyboardType="numeric"
@@ -1123,6 +1126,7 @@ export default function InvoicesComponent({navigation}) {
                   <>
                     <Text style={[styles.baseText, styles.bold, styles.marginWidth, styles.tertiary, {marginTop: 15}]}>Check Reference Number</Text>
                     <TextInput
+                      placeholderTextColor="#888"
                       style={[{marginTop: 25,  marginBottom: 20, width: '100%'}, styles.baseInput]}
                       placeholder="Enter check #"
                       keyboardType="numeric"
@@ -1180,7 +1184,7 @@ export default function InvoicesComponent({navigation}) {
             {
               !invoiceOwnerIdentifier && promptInvoiceForNearestDist && distributors.length > 0 &&
               <>
-                <Text style={[styles.subHeaderText, styles.bold, styles.tertiary, styles.centerText]}>Create invoice for nearest distributor?</Text>
+                <Text style={[styles.subHeaderText, styles.bold, styles.tertiary, styles.centerText]}>Create invoice for nearest retailer?</Text>
 
                 <Text style={[styles.baseText, styles.bold, styles.tertiary, styles.centerText, {marginTop: 40}]}>You're very close to {distributors[0].company}</Text>
                 <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {marginTop: 30, marginBottom: 10}]}>
@@ -1203,10 +1207,11 @@ export default function InvoicesComponent({navigation}) {
             {
               !invoiceOwnerIdentifier && !promptInvoiceForNearestDist &&
               <>
-                <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Distributor</Text>
+                <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Retailer</Text>
                 <TextInput
+                  placeholderTextColor="#888"
                   style={[{marginTop: 25,  marginBottom: 20, width: '100%'}, styles.baseInput]}
-                  placeholder="Find distributor..."
+                  placeholder="Find retailer..."
                   keyboardType="default"
                   value={distributorSearch}
                   onChangeText={(text) => {
@@ -1247,8 +1252,8 @@ export default function InvoicesComponent({navigation}) {
                     )
                   })
                 }
-                <TouchableOpacity onPress={() => setInvoiceAddMode(true)} style={[{marginLeft: '7.5%', marginBottom: 50}]}>
-                  <Text style={[styles.primary, styles.bold]}>Add Product</Text>
+                <TouchableOpacity onPress={() => setInvoiceAddMode(true)} style={[{marginLeft: '7.5%', marginBottom: 50, marginTop: 10}]}>
+                  <Text style={[styles.primary, styles.bold, {fontSize: 18}]}>Add Product</Text>
                 </TouchableOpacity>
 
 
@@ -1289,6 +1294,7 @@ export default function InvoicesComponent({navigation}) {
 
                     <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Quantity</Text>
                     <TextInput
+                      placeholderTextColor="#888"
                       style={[{marginTop: 5,  marginBottom: 20, width: '100%'}, styles.baseInput]}
                       placeholder="Enter quantity..."
                       keyboardType="numeric"
@@ -1301,6 +1307,7 @@ export default function InvoicesComponent({navigation}) {
 
                     <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Cost</Text>
                     <TextInput
+                      placeholderTextColor="#888"
                       style={[{marginTop: 5,  marginBottom: 20, width: '100%'}, styles.baseInput]}
                       placeholder="Enter cost..."
                       keyboardType="numeric"
@@ -1346,6 +1353,7 @@ export default function InvoicesComponent({navigation}) {
                   <>
                     <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Lot Number #</Text>
                     <TextInput
+                      placeholderTextColor="#888"
                       style={[{marginTop: 10,  marginBottom: 20, width: '100%'}, styles.baseInput]}
                       placeholder="Enter lot number..."
                       keyboardType="numeric"
@@ -1357,7 +1365,7 @@ export default function InvoicesComponent({navigation}) {
                     <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Product</Text>
                     <ScrollView style={{height: 280, marginTop: 10}} contentContainerStyle={[styles.defaultRowContainer, {flexWrap: 'wrap', justifyContent: 'space-around'}]}>
                       {
-                        products.map(product => {
+                        products.filter(p => p.sku).map(product => {
                           return (
                             <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setInvoiceLineItemRefIdentifier(product.identifier)}}>
                               <Image style={{ width: 120, height: 120, backgroundColor: product.identifier === invoiceLineItemRefIdentifier ? stylesheet.Primary : 'white'}} resizeMode="contain" source={{uri: 'https://res.cloudinary.com/cbd-salud-sativa/image/upload/f_auto,q_auto/' + product.shot}}></Image>
@@ -1410,6 +1418,7 @@ export default function InvoicesComponent({navigation}) {
             !productSearchIden == "" &&
             <View style={[styles.paddedWidth, styles.defaultColumnContainer]}>
               <TextInput
+                placeholderTextColor="#888"
                 style={[{marginTop: 50,  marginBottom: 50, width: '100%'}, styles.baseInput, {fontSize: 40}]}
                 placeholder="Enter Lot #"
                 keyboardType="numeric"

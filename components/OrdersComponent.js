@@ -199,7 +199,7 @@ export default function OrdersComponent({navigation}) {
                 <Text style={[styles.baseText, styles.tertiary, styles.bold, styles.center]}>{order.address.line2}</Text>
               </View>
 
-              <View style={[styles.defaultRowContainer, styles.flexWrap, {justifyContent: 'space-between', marginTop: 20}, styles.fullWidth]}>
+              <ScrollView contentContainerStyle={{padding: 0, margin: 0}} horizontal={true} showsHorizontalScrollIndicator={false} style={[styles.fullWidth, {marginTop: 0, marginBottom: 50, width: 'auto', height: 'auto'}]}>
                 {
                   order.products?.map(product => {
                     return (
@@ -224,7 +224,7 @@ export default function OrdersComponent({navigation}) {
                     )
                   })
                 }
-              </View>
+              </ScrollView>
               <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {marginTop: 30}]}>
                 <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => navigation.navigate('OrderView', {identifier: order.identifier})}>
                   <Feather name="info" size={28} />
