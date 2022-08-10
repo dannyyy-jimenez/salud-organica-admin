@@ -60,7 +60,7 @@ class Distributor {
 
 }
 
-export default function InvoicesComponent({navigation}) {
+export default function InvoicesComponent({navigation, route}) {
   const animationRef = React.useRef(null)
   const [isLoading, setIsLoading] = React.useState(false)
   const [defaultInvoices, setDefaultInvoices] = React.useState([])
@@ -581,6 +581,17 @@ export default function InvoicesComponent({navigation}) {
 
     loadInvoiceRec()
   }, [invoiceOwnerIdentifier])
+
+  React.useEffect(() => {
+    if (route.params.invoiceOwnerIdentifier && typeof route.params.invoiceOwnerIdentifier == "string" && route.params.invoiceOwnerIdentifier !== "") {
+      setInvoiceOwnerIdentifier(route.params.invoiceOwnerIdentifier)
+      setTimeout(() => {
+        invoiceActionSheetRef.current?.setModalVisible(true)        
+      }, 500)
+    } else {
+      setInvoiceOwnerIdentifier("")
+    }
+  }, [route.params])
 
   return (
     <SafeAreaView style={styles.defaultTabContainer}>
@@ -1170,7 +1181,7 @@ export default function InvoicesComponent({navigation}) {
           </View>
         }
       </ActionSheet>
-      <ActionSheet containerStyle={{paddingBottom: 20, backgroundColor: stylesheet.Secondary}} onClose={() => {setInvoiceAddMode(false)}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} ref={invoiceActionSheetRef}>
+      <ActionSheet containerStyle={{paddingBottom: 20, backgroundColor: stylesheet.Secondary}} onClose={() => {setInvoiceAddMode(false); setInvoiceOwnerIdentifier("")}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} ref={invoiceActionSheetRef}>
         <View style={{marginBottom: 40}}>
           <View style={[styles.defaultRowContainer, styles.fullWidth]}>
             <View style={styles.spacer}></View>
@@ -1182,7 +1193,7 @@ export default function InvoicesComponent({navigation}) {
           <View style={styles.line}></View>
           <View style={[styles.paddedWidth, styles.defaultColumnContainer]}>
             {
-              !invoiceOwnerIdentifier && promptInvoiceForNearestDist && distributors.length > 0 &&
+              invoiceOwnerIdentifier === "" && promptInvoiceForNearestDist && distributors.length > 0 &&
               <>
                 <Text style={[styles.subHeaderText, styles.bold, styles.tertiary, styles.centerText]}>Create invoice for nearest retailer?</Text>
 
@@ -1205,7 +1216,7 @@ export default function InvoicesComponent({navigation}) {
             }
 
             {
-              !invoiceOwnerIdentifier && !promptInvoiceForNearestDist &&
+              invoiceOwnerIdentifier === "" && !promptInvoiceForNearestDist &&
               <>
                 <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Retailer</Text>
                 <TextInput

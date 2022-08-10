@@ -75,6 +75,7 @@ export default function Distributors({navigation}) {
   // section 1
   const [givenName, setGivenName] = React.useState('')
   const [familyName, setFamilyName] = React.useState('')
+  const [managers, setManagers] = React.useState("")
 
   // section 2
   const [companyName, setCompanyName] = React.useState('')
@@ -82,8 +83,7 @@ export default function Distributors({navigation}) {
   const [phone, setPhone] = React.useState('')
 
   // section 3
-  const [lines, setLines] = React.useState([])
-  const [herencia_displays, setHerenciaDisplays] = React.useState('')
+  const [lines, setLines] = React.useState(['herencia'])
 
   // section 4
   const [stateCode, setStateCode] = React.useState('')
@@ -138,6 +138,11 @@ export default function Distributors({navigation}) {
       }
 
       setDefaultDistributors(dists)
+
+      if (routeLetter !== "") {
+        dists = dists.slice().filter(dist => dist.route.includes(routeLetter))
+      }
+
       setDistributors(dists)
       setIsLoading(false)
     } catch (e) {
@@ -146,13 +151,18 @@ export default function Distributors({navigation}) {
     }
   }
 
-  const onCreate = async () => {
+  const onCreate = async (useCoordinates = false) => {
     createSheetRef.current?.setModalVisible(false)
 
     setIsLoading(true)
 
     try {
-      const res = await Api.post('/admin/quickbooks/distributor', {routeLetter: newRouteLetter, givenName, familyName, companyName, email, phone, stateCode, city, postalCode, line1, line2, herencia_displays});
+      let body = {routeLetter: newRouteLetter, managers, companyName, email, phone, stateCode, city, postalCode, line1, line2}
+      if (useCoordinates) {
+        body["lat"] = location.coords.latitude;
+        body["lng"] = location.coords.longitude
+      }
+      const res = await Api.post('/admin/distributors/create', body);
 
       if (res.isError) {
         alert(res.response)
@@ -160,8 +170,7 @@ export default function Distributors({navigation}) {
       }
 
       setNewRouteLetter('')
-      setGivenName('')
-      setFamilyName('')
+      setManagers('')
       setCompanyName('')
       setEmail('')
       setPhone('')
@@ -170,8 +179,7 @@ export default function Distributors({navigation}) {
       setLine1('')
       setLine2('')
       setPostalCode('')
-      setLines([])
-      setHerenciaDisplays('')
+      setLines(['herencia'])
       setNewSection(0)
       load();
     } catch (e) {
@@ -340,6 +348,24 @@ export default function Distributors({navigation}) {
     })
   }
 
+  React.useEffect(() => {
+    if (newSection === 2) {
+      Api.geocode(`${location.coords.latitude},${location.coords.longitude}`).then(res => {
+
+        let mostConfident = res.data.data[0];
+        setLine1(mostConfident.name)
+        if (mostConfident.locality === mostConfident.region) {
+          setCity(mostConfident.neighbourhood)
+        }
+        setStateCode(mostConfident.region_code)
+        setPostalCode(mostConfident.postal_code)
+
+      }).catch(e => {
+        console.log(e)
+      })
+    }
+  }, [newSection])
+
   return (
     <SafeAreaView style={styles.defaultTabContainer}>
       <View style={styles.defaultTabHeader}>
@@ -475,8 +501,13 @@ export default function Distributors({navigation}) {
                   <Text numberOfLines={1} style={[styles.subHeaderText, styles.nunitoText, styles.tertiary, {marginTop: 20, marginBottom: 20}]}>{nearest.company}</Text>
                 </View>
                 <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {padding: 10, backgroundColor: '#F9F9F9', borderBottomLeftRadius: 10, borderBottomRightRadius: 10}]}>
-                  <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => openMaps(nearest)}>
+                  <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => openMaps(distributor)}>
                     <Feather name="map-pin" size={28} color="black" />
+                    <Text style={{marginTop: 5, fontSize: 12}}>Navigate</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => navigation.navigate("Invoices", {screen: "InboxInhouseInvoices", params: {invoiceOwnerIdentifier: nearest.identifier}})}>
+                    <Feather name="file-plus" size={28} color="black" />
+                    <Text style={{marginTop: 5, fontSize: 12}}>New Invoice</Text>
                   </TouchableOpacity>
                   {
                     nearest.status > 5 &&
@@ -530,8 +561,13 @@ export default function Distributors({navigation}) {
                       <Text numberOfLines={1} style={[styles.subHeaderText, styles.nunitoText, styles.tertiary, {marginTop: 20, marginBottom: 20}]}>{distributor.company}</Text>
                     </View>
                     <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {padding: 10, backgroundColor: '#F9F9F9', borderBottomLeftRadius: 10, borderBottomRightRadius: 10}]}>
-                      <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => openMaps(distributor)}>
+                      <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => openMaps(distributor)}>
                         <Feather name="map-pin" size={28} color="black" />
+                        <Text style={{marginTop: 5, fontSize: 12}}>Navigate</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => navigation.navigate("Invoices", {screen: "InboxInhouseInvoices", params: {invoiceOwnerIdentifier: distributor.identifier}})}>
+                        <Feather name="file-plus" size={28} color="black" />
+                        <Text style={{marginTop: 5, fontSize: 12}}>New Invoice</Text>
                       </TouchableOpacity>
                       {
                         distributor.status > 5 &&
@@ -566,32 +602,6 @@ export default function Distributors({navigation}) {
                 Urgency
               </Text>
             </TouchableOpacity>
-
-            {/* <Text style={[styles.baseText, styles.bold, styles.tertiary, {marginTop: 30}]}>Route Letter</Text>
-            <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setRouteLetter(null)}}>
-              <Text style={[styles.baseText, styles.tertiary, {opacity: !routeLetter ? 0.2 : 1}]}>Any</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setRouteLetter('A')}}>
-              <Text style={[styles.baseText, styles.tertiary, {opacity: routeLetter == 'A' ? 0.2 : 1}]}>A (Chicago)</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setRouteLetter('B')}}>
-              <Text style={[styles.baseText, styles.tertiary, {opacity: routeLetter == 'B' ? 0.2 : 1}]}>B (Waukegan)</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setRouteLetter('C')}}>
-              <Text style={[styles.baseText, styles.tertiary, {opacity: routeLetter == 'C' ? 0.2 : 1}]}>C (Joliet)</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setRouteLetter('D')}}>
-              <Text style={[styles.baseText, styles.tertiary, {opacity: routeLetter == 'D' ? 0.2 : 1}]}>D (Elgin)</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setRouteLetter('E')}}>
-              <Text style={[styles.baseText, styles.tertiary, {opacity: routeLetter == 'E' ? 0.2 : 1}]}>E (Aurora)</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setRouteLetter('F')}}>
-              <Text style={[styles.baseText, styles.tertiary, {opacity: routeLetter == 'F' ? 0.2 : 1}]}>F (Evergreen)</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setRouteLetter('G')}}>
-              <Text style={[styles.baseText, styles.tertiary, {opacity: routeLetter == 'G' ? 0.2 : 1}]}>G (Northside)</Text>
-            </TouchableOpacity> */}
           </View>
         </View>
       </ActionSheet>
@@ -599,8 +609,14 @@ export default function Distributors({navigation}) {
         <View>
           <View style={[styles.defaultRowContainer, styles.fullWidth]}>
             {
-              newSection > 0 &&
+              newSection > 0 && newSection !== 234 &&
               <TouchableOpacity style={{marginLeft: 8, marginRight: 8}} onPress={() => setNewSection(newSection - 1)}>
+                <Feather name="chevron-left" size={26} color="black" />
+              </TouchableOpacity>
+            }
+            {
+              newSection === 234 &&
+              <TouchableOpacity style={{marginLeft: 8, marginRight: 8}} onPress={() => setNewSection(2)}>
                 <Feather name="chevron-left" size={26} color="black" />
               </TouchableOpacity>
             }
@@ -611,33 +627,39 @@ export default function Distributors({navigation}) {
             }
             {
               newSection === 1 &&
-              <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary, {marginTop: 10}]}>Enter Manager Info</Text>
-            }
-            {
-              newSection === 2 &&
               <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary, {marginTop: 10}]}>Enter Retailer Info</Text>
             }
             {
-              newSection === 3 &&
+              newSection === 2 &&
               <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary, {marginTop: 10}]}>Select Lines Available</Text>
             }
             {
-              newSection === 4 &&
+              newSection === 3 &&
               <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary, {marginTop: 10}]}>Select Retailer State</Text>
             }
             {
-              newSection === 5 &&
+              newSection === 4 &&
               <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary, {marginTop: 10}]}>Enter Retailer Address</Text>
+            }
+            {
+              newSection === 234 &&
+              <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary, {marginTop: 10}]}>Confirm Retailer Address</Text>
             }
             <View style={styles.spacer}></View>
             {
-              newSection !== 5 &&
+              newSection !== 4 && newSection !== 2 && newSection !== 234 &&
               <TouchableOpacity style={{marginLeft: 8, marginRight: 8}} onPress={() => setNewSection(newSection + 1)}>
                 <Feather name="chevron-right" size={26} color="black" />
               </TouchableOpacity>
             }
             {
-              newSection == 5 &&
+              newSection === 2 &&
+              <TouchableOpacity style={{marginLeft: 8, marginRight: 8}} onPress={() => setNewSection(234)}>
+                <Feather name="chevron-right" size={26} color="black" />
+              </TouchableOpacity>
+            }
+            {
+              newSection == 4 &&
               <TouchableOpacity style={{marginLeft: 8, marginRight: 8}} onPress={() => onCreate()}>
                 <Feather name="chevrons-right" size={26} color="black" />
               </TouchableOpacity>
@@ -648,53 +670,36 @@ export default function Distributors({navigation}) {
             {
               newSection === 0 &&
               <>
-                <ScrollView style={{height: 200}}>
+                <ScrollView style={{maxHeight: 200, marginBottom: 10}}>
                   {
                     routeLetters.slice(1).map(letter => {
                       return (
                         <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setNewRouteLetter(letter); setNewSection(1)}}>
-                          <Text style={[styles.baseText, styles.tertiary]}>{letter} ({FormatRouteLetter(letter)})</Text>
+                          <Text style={[styles.baseText, newRouteLetter === letter ? styles.primary : styles.tertiary]}>{letter} ({FormatRouteLetter(letter)})</Text>
                         </TouchableOpacity>
                       )
                     })
                   }
                 </ScrollView>
+                <TextInput
+                  placeholderTextColor="#888"
+                  style={[{marginBottom: 50, width: '100%'}, styles.baseInput, {textAlign: 'left'}]}
+                  placeholder="Enter new custom route letter..."
+                  placeholderTextColor="#888"
+                  keyboardType="default"
+                  value={newRouteLetter}
+                  onChangeText={(text) => {
+                    setNewRouteLetter(text)
+                  }}
+                />
               </>
             }
             {
               newSection === 1 &&
               <>
-                <Text style={[styles.baseText, styles.bold, styles.tertiary, {marginTop: 0}]}>First Name</Text>
-                <TextInput
-                  placeholderTextColor="#888"
-                  style={[{marginTop: 10,  marginBottom: 20, width: '100%'}, styles.baseInput]}
-                  placeholder="Enter first name..."
-                  placeholderTextColor="#888"
-                  keyboardType="default"
-                  value={givenName}
-                  onChangeText={(text) => {
-                    setGivenName(text)
-                  }}
-                />
-                <Text style={[styles.baseText, styles.bold, styles.tertiary, {marginTop: 20}]}>Last Name</Text>
-                <TextInput
-                  style={[{marginTop: 10,  marginBottom: 40, width: '100%'}, styles.baseInput]}
-                  placeholder="Enter last name..."
-                  placeholderTextColor="#888"
-                  keyboardType="default"
-                  value={familyName}
-                  onChangeText={(text) => {
-                    setFamilyName(text)
-                  }}
-                />
-              </>
-            }
-            {
-              newSection === 2 &&
-              <>
                 <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Company Name</Text>
                 <TextInput
-                  style={[{marginTop: 10,  marginBottom: 20, width: '100%'}, styles.baseInput]}
+                  style={[{marginBottom: 20, width: '100%'}, styles.baseInput]}
                   placeholder="Enter name..."
                   placeholderTextColor="#888"
                   keyboardType="default"
@@ -703,9 +708,21 @@ export default function Distributors({navigation}) {
                     setCompanyName(text)
                   }}
                 />
+                <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Manager(s) (separate with commas)</Text>
+                <TextInput
+                  placeholderTextColor="#888"
+                  style={[{width: '100%'}, styles.baseInput]}
+                  placeholder="Enter manager names..."
+                  placeholderTextColor="#888"
+                  keyboardType="default"
+                  value={managers}
+                  onChangeText={(text) => {
+                    setManagers(text)
+                  }}
+                />
                 <Text style={[styles.baseText, styles.bold, styles.tertiary, {marginTop: 10}]}>E-mail</Text>
                 <TextInput
-                  style={[{marginTop: 10,  marginBottom: 20, width: '100%'}, styles.baseInput]}
+                  style={[{marginBottom: 20, width: '100%'}, styles.baseInput]}
                   placeholder="Enter email..."
                   keyboardType="email-address"
                   placeholderTextColor="#888"
@@ -716,7 +733,7 @@ export default function Distributors({navigation}) {
                 />
                 <Text style={[styles.baseText, styles.bold, styles.tertiary, {marginTop: 10}]}>Phone Number</Text>
                 <TextInput
-                  style={[{marginTop: 10,  marginBottom: 40, width: '100%'}, styles.baseInput]}
+                  style={[{marginBottom: 40, width: '100%'}, styles.baseInput]}
                   placeholder="Enter phone number..."
                   keyboardType="phone-pad"
                   placeholderTextColor="#888"
@@ -728,9 +745,9 @@ export default function Distributors({navigation}) {
               </>
             }
             {
-              newSection === 3 &&
-              <>
-                <View style={[styles.defaultRowContainer, {marginBottom: 40}]}>
+              newSection === 2 &&
+              <View style={{paddingBottom: 40}}>
+                <View style={[styles.defaultRowContainer, {marginBottom: 20}]}>
                   <Checkbox
                     style={styles.checkbox}
                     value={lines.includes('herencia')}
@@ -747,48 +764,32 @@ export default function Distributors({navigation}) {
                   />
                   <Text style={[styles.baseText, styles.bold, styles.tertiary, {marginLeft: 10}]}>Herencia del Abuelo</Text>
                 </View>
-                {
-                  lines.includes('herencia') &&
-                  <>
-                    <Text style={[styles.baseText, styles.bold, styles.tertiary, {marginTop: 30}]}>Herencia del Abuelo Displays</Text>
-                    <TextInput
-                      style={[{marginTop: 10,  marginBottom: 20, width: '100%'}, styles.baseInput]}
-                      placeholder="Enter amount..."
-                      placeholderTextColor="#888"
-                      keyboardType="numeric"
-                      value={herencia_displays}
-                      onChangeText={(text) => {
-                        setHerenciaDisplays(text)
-                      }}
-                    />
-                  </>
-                }
-              </>
+              </View>
             }
             {
-              newSection === 4 &&
+              newSection === 3 &&
               <>
                 <ScrollView style={{height: 200, marginBottom: 20}}>
                   <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setStateCode("IL"); setNewSection(5)}}>
-                    <Text style={[styles.baseText, styles.tertiary]}>Illinois</Text>
+                    <Text style={[styles.baseText, stateCode === "IL" ? styles.primary : styles.tertiary]}>Illinois</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setStateCode("WI"); setNewSection(5)}}>
-                    <Text style={[styles.baseText, styles.tertiary]}>Wisconsin</Text>
+                    <Text style={[styles.baseText, stateCode === "WI" ? styles.primary : styles.tertiary]}>Wisconsin</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setStateCode("IN"); setNewSection(5)}}>
-                    <Text style={[styles.baseText, styles.tertiary]}>Indiana</Text>
+                    <Text style={[styles.baseText, stateCode === "IN" ? styles.primary : styles.tertiary]}>Indiana</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setStateCode("NY"); setNewSection(5)}}>
-                    <Text style={[styles.baseText, styles.tertiary]}>New York</Text>
+                    <Text style={[styles.baseText, stateCode === "NY" ? styles.primary : styles.tertiary]}>New York</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setStateCode("NJ"); setNewSection(5)}}>
-                    <Text style={[styles.baseText, styles.tertiary]}>New Jersey</Text>
+                    <Text style={[styles.baseText, stateCode === "NJ" ? styles.primary : styles.tertiary]}>New Jersey</Text>
                   </TouchableOpacity>
                 </ScrollView>
               </>
             }
             {
-              newSection === 5 &&
+              newSection === 4 &&
               <>
                 <Text style={[styles.baseText, styles.bold, styles.tertiary, {marginTop: 0}]}>Line 1</Text>
                 <TextInput
@@ -834,6 +835,26 @@ export default function Distributors({navigation}) {
                     setPostalCode(text)
                   }}
                 />
+              </>
+            }
+            {
+              newSection === 234 &&
+              <>
+              <Text style={[styles.baseText, styles.bold, styles.tertiary, styles.centerText, {marginTop: 5}]}>{line1}{line2 !== "" ? " " + line2 : ""}, {city}, {stateCode} {postalCode}</Text>
+              <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {marginTop: 30, marginBottom: 40}]}>
+                <TouchableOpacity
+                  onPress={() => setNewSection(4)}
+                  underlayColor='#fff'
+                  style={{marginLeft: 15, marginRight: 15}}>
+                  <Feather name="x" size={32} color={"red"} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => onCreate(true)}
+                  underlayColor='#fff'
+                  style={{marginLeft: 15, marginRight: 15}}>
+                  <Feather name="check" size={32} color={stylesheet.Primary} />
+                </TouchableOpacity>
+              </View>
               </>
             }
           </View>

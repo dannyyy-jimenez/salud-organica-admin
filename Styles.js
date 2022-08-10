@@ -69,6 +69,7 @@ const Styles = StyleSheet.create({
         outlineColor: Secondary,
       }
     }),
+    height: 45,
     paddingLeft: 4,
     paddingRight: 4,
     fontSize: 16,

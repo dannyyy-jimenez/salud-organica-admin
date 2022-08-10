@@ -3,7 +3,6 @@ import { ScrollView, RefreshControl, StyleSheet, Text, View, Image, TouchableOpa
 import LottieView from 'lottie-react-native';
 import { MaterialIcons, Ionicons, Feather } from '@expo/vector-icons';
 import ActionSheet from "react-native-actions-sheet";
-
 import API from '../Api'
 
 let stylesheet = require('../Styles')

@@ -77,5 +77,20 @@ export default {
     } catch (error) {
       return onError(error);
     }
+  },
+  geocode: async (query, reverse = true) => {
+    try {
+      const geoclient = axios.create({
+        baseURL: 'http://api.positionstack.com/v1/',
+        timeout: 20000
+      });
+      const res = await geoclient.get((reverse ? 'reverse' : ''), {
+        params: {query, "access_key": "a2ec36bdc8f30cd3c2696198975b3316"},
+        headers: headers
+      });
+      return res
+    } catch (error) {
+      return error
+    }
   }
 }
