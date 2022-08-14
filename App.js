@@ -146,6 +146,7 @@ export default function App() {
   const [notifToken, setNotificationToken] = React.useState(null)
   const [userDeviceID, setUserDeviceID] = React.useState(null)
   const colorScheme = useColorScheme();
+  const [permissions, setPermissions] = React.useState([])
 
   React.useEffect(() => {
     Notifications.setBadgeCountAsync(0);
@@ -195,6 +196,7 @@ export default function App() {
 
        const res = await API.get('/admin/auth', {uuid: savedUUID})
        if (res.data.auth) {
+         setPermissions(res.data._p)
          setAuthenticated(true)
        }
 
@@ -290,7 +292,10 @@ export default function App() {
             }
           })}>
             <Tab.Screen name="Dashboard" component={DashboardStackComponent} />
-            <Tab.Screen name="Orders" component={OrdersStackComponent} />
+            {
+              permissions.includes("ORDERS") &&
+              <Tab.Screen name="Orders" component={OrdersStackComponent} />
+            }
             <Tab.Screen name="Invoices" component={InboxStackComponent} />
             <Tab.Screen name="Retailers" component={DistributorsStackComponent} />
           </Tab.Navigator>

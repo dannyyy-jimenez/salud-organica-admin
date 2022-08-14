@@ -37,7 +37,7 @@ export default function DistributorsMap({navigation, route}) {
 
     setDistributors([])
     try {
-      const res = await Api.get('/admin/distributors', {route: route.params.letter});
+      const res = await Api.get('/admin/distributors', {route: route.params.letter, isMap: true});
 
       if (res.isError) throw res;
 

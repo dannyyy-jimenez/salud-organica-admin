@@ -428,6 +428,8 @@ export default function InvoicesComponent({navigation, route}) {
     }
   }
 
+  // edit invoice
+
   const GetPdfURI = async (id) => {
     setIsLoading(true);
 
@@ -519,6 +521,7 @@ export default function InvoicesComponent({navigation, route}) {
       if (res.isError) throw 'error';
 
       load()
+      scopeInvoiceActionSheetRef.current?.setModalVisible(false)
     } catch (e) {
       setIsLoading(false);
       console.log(e)
@@ -583,11 +586,16 @@ export default function InvoicesComponent({navigation, route}) {
   }, [invoiceOwnerIdentifier])
 
   React.useEffect(() => {
-    if (route.params.invoiceOwnerIdentifier && typeof route.params.invoiceOwnerIdentifier == "string" && route.params.invoiceOwnerIdentifier !== "") {
-      setInvoiceOwnerIdentifier(route.params.invoiceOwnerIdentifier)
-      setTimeout(() => {
-        invoiceActionSheetRef.current?.setModalVisible(true)        
-      }, 500)
+    if (route.params && route.params.invoiceOwnerIdentifier && typeof route.params.invoiceOwnerIdentifier == "string" && route.params.invoiceOwnerIdentifier !== "") {
+      (async () => {
+        if (!distributors.find(d => d.identifier === invoiceOwnerIdentifier)) {
+          await load()
+        }
+        setInvoiceOwnerIdentifier(route.params.invoiceOwnerIdentifier)
+        setTimeout(() => {
+          invoiceActionSheetRef.current?.setModalVisible(true)
+        }, 500)
+      })()
     } else {
       setInvoiceOwnerIdentifier("")
     }
@@ -935,22 +943,22 @@ export default function InvoicesComponent({navigation, route}) {
                     </Text>
                   </View>
                   <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {padding: 10, marginTop: 10}]}>
-                    {
-                      onWiFi &&
-                      <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => GetPrintableURI(invoice.identifier)}>
-                        <Feather name="printer" size={28} color="black" />
-                      </TouchableOpacity>
-                    }
-                    <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => GetPdfURI(invoice.identifier)}>
+                    <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => GetPrintableURI(invoice.identifier)}>
+                      <Feather name="printer" size={28} color="black" />
+                      <Text style={{marginTop: 5, fontSize: 12}}>Print</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => GetPdfURI(invoice.identifier)}>
                       <AntDesign name="pdffile1" size={28} color="black" />
+                      <Text style={{marginTop: 5, fontSize: 12}}>Share</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => GetShareableURI(invoice.identifier)}>
+                    {/* <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => GetShareableURI(invoice.identifier)}>
                       <Feather name="type" size={28} color="black" />
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
                     {
                       !topups.includes(invoice.identifier) &&
-                      <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => TopUpDelivery(invoice)}>
+                      <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => TopUpDelivery(invoice)}>
                         <Feather name="truck" size={28} color="black" />
+                        <Text style={{marginTop: 5, fontSize: 12}}>Delivered</Text>
                       </TouchableOpacity>
                     }
                   </View>
@@ -1049,21 +1057,24 @@ export default function InvoicesComponent({navigation, route}) {
               <View style={[styles.defaultColumnContainer, styles.fullWidth, {alignItems: 'flex-start', marginTop: 10}]}>
                 <Text style={[styles.tinyText, styles.primary, styles.bold, styles.center]}>Total: ${scopeInvoice.total.toFixed(2)}</Text>
               </View>
-              <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {marginTop: 10, marginBottom: 20}]}>
+              <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {marginTop: 30, marginBottom: 20}]}>
                 {
                   !topups.includes(scopeInvoice.identifier) &&
-                  <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => TopUpDelivery(scopeInvoice)}>
+                  <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => TopUpDelivery(scopeInvoice)}>
                     <Feather name="truck" size={28} color="black" />
+                    <Text style={{marginTop: 5, fontSize: 12}}>Delivered</Text>
                   </TouchableOpacity>
                 }
                 {
                   !scopeInvoice.paid &&
-                  <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => setInvoicePaymentMode(true)}>
+                  <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => setInvoicePaymentMode(true)}>
                     <Feather name="dollar-sign" size={28} color="black" />
+                    <Text style={{marginTop: 5, fontSize: 12}}>Payment</Text>
                   </TouchableOpacity>
                 }
-                <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => setConfirmInvoiceDeleteMode(true)}>
+                <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => setConfirmInvoiceDeleteMode(true)}>
                   <Feather name="trash-2" size={28} color="red" />
+                  <Text style={{marginTop: 5, fontSize: 12, color: "red"}}>Delete</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1173,7 +1184,7 @@ export default function InvoicesComponent({navigation, route}) {
             <Text style={[styles.tinyText, styles.centerText, styles.tertiary, styles.bold, styles.opaque, {marginBottom: 20}]}>Long hold trash icon to confirm</Text>
             <View style={styles.defaultColumnContainer, styles.fullWidth, styles.fullSCContent, {backgroundColor: 'white', paddingBottom: 0}}>
               <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {marginTop: 10}]}>
-                <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onLongPress={() => onDeleteInvoice(scopeInvoice.identifier)}>
+                <TouchableOpacity style={{marginLeft: 15, marginRight: 15, marginBottom: 20}} onLongPress={() => onDeleteInvoice(scopeInvoice.identifier)}>
                   <Feather name="trash-2" size={40} color="red" />
                 </TouchableOpacity>
               </View>
@@ -1186,7 +1197,7 @@ export default function InvoicesComponent({navigation, route}) {
           <View style={[styles.defaultRowContainer, styles.fullWidth]}>
             <View style={styles.spacer}></View>
             <TouchableOpacity style={{marginLeft: 8, marginRight: 8}} onPress={() => {setInvoiceOwnerIdentifier("")}}>
-              <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary, {marginTop: 10}]}>New Invoice <Text style={styles.primary}>{invoiceOwnerIdentifier ? `for ${distributors.find(d => d.identifier === invoiceOwnerIdentifier).company}`: ''}</Text></Text>
+              <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary, {marginTop: 10}]}>New Invoice <Text style={styles.primary}>{invoiceOwnerIdentifier && distributors.find(d => d.identifier === invoiceOwnerIdentifier) ? `for ${distributors.find(d => d.identifier === invoiceOwnerIdentifier).company}`: ''}</Text></Text>
             </TouchableOpacity>
             <View style={styles.spacer}></View>
           </View>
@@ -1254,7 +1265,7 @@ export default function InvoicesComponent({navigation, route}) {
                         <View style={[styles.defaultRowContainer, styles.fullWidth, {marginTop: 5, marginBottom: 5}]}>
                           <Text style={[styles.baseText, styles.nunitoText, styles.tertiary]}>{FormatProductName(invoiceLineItem.identifier)}</Text>
                           <View style={styles.spacer}></View>
-                          <Text style={[styles.baseText, styles.nunitoText, styles.tertiary]}>{invoiceLineItem.quantity} x ${invoiceLineItem.cost}</Text>
+                          <Text style={[styles.baseText, styles.nunitoText, styles.tertiary]}>{invoiceLineItem.quantity} x ${invoiceLineItem.cost.toLocaleString()}</Text>
                           <Pressable onPress={() => onInvoiceLineRemove(idx)} style={{bottom: 2, marginLeft: 10}}>
                             <Feather name="x" size={24} color='red' />
                           </Pressable>
@@ -1339,14 +1350,16 @@ export default function InvoicesComponent({navigation, route}) {
                       <TouchableOpacity
                         onPress={() => setInvoiceAddScanMode(true)}
                         underlayColor='#fff'
-                        style={{marginLeft: 10, marginRight: 10}}>
+                        style={[{marginLeft: 15, marginRight: 15}, styles.center]}>
                         <Feather name="maximize" size={26} color={stylesheet.Primary} />
+                        <Text style={{marginTop: 5, fontSize: 12, color: stylesheet.Primary}}>Scan Product</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={() => setInvoiceAddSearchMode(true)}
                         underlayColor='#fff'
-                        style={{marginLeft: 10, marginRight: 10}}>
+                        style={[{marginLeft: 15, marginRight: 15}, styles.center]}>
                         <Feather name="edit" size={26} color={stylesheet.Primary} />
+                        <Text style={{marginTop: 5, fontSize: 12, color: stylesheet.Primary}}>Pick Item</Text>
                       </TouchableOpacity>
                     </View>
                   </>
@@ -1396,7 +1409,7 @@ export default function InvoicesComponent({navigation, route}) {
                 }
 
                 {
-                  invoiceLineItemRefIdentifier !== "" && invoiceLineItemRefQty !== "" && parseInt(invoiceLineItemRefQty) > 0 && invoiceLineItemRefCost !== "" &&
+                  invoiceLineItemRefIdentifier !== "" && invoiceLineItemRefQty !== "" && parseInt(invoiceLineItemRefQty) > 0 && invoiceLineItemRefCost !== "" && invoiceLineItemRefLot !== "" && !invoiceAddSearchMode &&
                   <TouchableOpacity onPress={onAddLineItem} style={[styles.roundedButton, styles.filled, {marginLeft: '7.5%', marginTop: 40}]}>
                     <Text style={[styles.secondary, styles.bold]}>Add Line Item</Text>
                   </TouchableOpacity>

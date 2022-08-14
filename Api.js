@@ -92,5 +92,26 @@ export default {
     } catch (error) {
       return error
     }
+  },
+  autocomplete: async (query, latitude = null, longitude = null) => {
+    try {
+      const autocompleteClient = axios.create({
+        baseURL: `https://api.tomtom.com/search/2/search/`,
+        timeout: 20000
+      });
+      const res = await autocompleteClient.get(`${encodeURIComponent(query)}.json`, {
+        params: {
+          key: 'GM2ZmLIVNaHqMNqTGXstkAcQZJxnpxng',
+          language: 'en-US',
+          lat: latitude,
+          lon: longitude,
+          countrySet: 'US'
+        },
+        headers: headers
+      });
+      return res
+    } catch (e) {
+      return e
+    }
   }
 }

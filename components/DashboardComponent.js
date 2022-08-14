@@ -19,6 +19,7 @@ const actionSheetRef = React.createRef();
 
 export default function DashboardComponent({navigation}) {
   const animationRef = React.useRef(null)
+  const [permissions, setPermissions] = React.useState([])
   const [isLoading, setIsLoading] = React.useState(false)
   const [adminName, setAdminName] = React.useState(null);
   const [dailyQuote, setDailyQuote] = React.useState({
@@ -60,7 +61,7 @@ export default function DashboardComponent({navigation}) {
 
       setPhysicalSales(res.data._i.map(i => i.total).reduce((total, next) => total + next, 0))
       setOverdueInvoices(res.data._i.filter(i => !i.paid && moment().diff(moment(i.due)) >= 0))
-
+      setPermissions(res.data._p)
       setTrends(res.data._trends)
 
       setSpotifyAuth(res.data._spotify)
@@ -159,6 +160,7 @@ export default function DashboardComponent({navigation}) {
 
         <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={[styles.fullWidth, styles.justifyCenter, {marginTop: 40, marginBottom: 40, height: 'auto'}]}>
           {
+            permissions.includes("STATS") &&
             <View style={[styles.analyticCard, styles.elevated, {backgroundColor: '#20AF7E'}]}>
               <Text style={[styles.subHeaderText, styles.bold, styles.secondary]}>YTD Website Sales</Text>
 
@@ -173,6 +175,7 @@ export default function DashboardComponent({navigation}) {
             </View>
           }
           {
+            permissions.includes("STATS") && 
             <View style={[styles.analyticCard, styles.elevated, {backgroundColor: '#40BA91'}]}>
               <Text style={[styles.subHeaderText, styles.bold, styles.secondary]}>YTD Physical Sales</Text>
 

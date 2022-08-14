@@ -85,14 +85,12 @@ export default function Distributors({navigation}) {
   // section 3
   const [lines, setLines] = React.useState(['herencia'])
 
-  // section 4
-  const [stateCode, setStateCode] = React.useState('')
-
   // section 5
-  const [city, setCity] = React.useState('')
-  const [postalCode, setPostalCode] = React.useState('')
-  const [line1, setLine1] = React.useState('')
-  const [line2, setLine2] = React.useState('')
+  const [autocompletedAddresses, setAutocompletedAddresses] = React.useState([])
+  const [addressSearch, setAddressSearch] = React.useState('')
+  const [selectedAddressFreeform, setSelectedAddressFreeform] = React.useState('')
+  const [addressLat, setAddressLat] = React.useState('')
+  const [addressLng, setAddressLng] = React.useState('')
 
   const load = async (loc = null, loadingPers = true) => {
     if (loadingPers) {
@@ -151,17 +149,13 @@ export default function Distributors({navigation}) {
     }
   }
 
-  const onCreate = async (useCoordinates = false) => {
+  const onCreate = async () => {
     createSheetRef.current?.setModalVisible(false)
 
     setIsLoading(true)
 
     try {
-      let body = {routeLetter: newRouteLetter, managers, companyName, email, phone, stateCode, city, postalCode, line1, line2}
-      if (useCoordinates) {
-        body["lat"] = location.coords.latitude;
-        body["lng"] = location.coords.longitude
-      }
+      let body = {routeLetter: newRouteLetter, managers, companyName, email, phone, address: selectedAddressFreeform, addressLat, addressLng}
       const res = await Api.post('/admin/distributors/create', body);
 
       if (res.isError) {
@@ -174,11 +168,11 @@ export default function Distributors({navigation}) {
       setCompanyName('')
       setEmail('')
       setPhone('')
-      setStateCode('')
-      setCity('')
-      setLine1('')
-      setLine2('')
-      setPostalCode('')
+      setAddressLat('')
+      setAddressLng('')
+      setSelectedAddressFreeform('')
+      setAddressSearch('')
+      setAutocompletedAddresses([])
       setLines(['herencia'])
       setNewSection(0)
       load();
@@ -349,22 +343,22 @@ export default function Distributors({navigation}) {
   }
 
   React.useEffect(() => {
-    if (newSection === 2) {
-      Api.geocode(`${location.coords.latitude},${location.coords.longitude}`).then(res => {
-
-        let mostConfident = res.data.data[0];
-        setLine1(mostConfident.name)
-        if (mostConfident.locality === mostConfident.region) {
-          setCity(mostConfident.neighbourhood)
-        }
-        setStateCode(mostConfident.region_code)
-        setPostalCode(mostConfident.postal_code)
-
-      }).catch(e => {
-        console.log(e)
-      })
+    if (addressSearch === "") {
+      return;
     }
-  }, [newSection])
+
+    Api.autocomplete(addressSearch, location.coords.latitude, location.coords.longitude).then(res => {
+      setAutocompletedAddresses(res.data.results.filter(a => a.type === 'Point Address'))
+    }).catch(e => {
+      console.log(e)
+    })
+  }, [addressSearch])
+
+  const onAutocompletedSelect = (address) => {
+    setSelectedAddressFreeform(address.address.freeformAddress)
+    setAddressLat(address.position.lat)
+    setAddressLng(address.position.lon)
+  }
 
   return (
     <SafeAreaView style={styles.defaultTabContainer}>
@@ -609,14 +603,8 @@ export default function Distributors({navigation}) {
         <View>
           <View style={[styles.defaultRowContainer, styles.fullWidth]}>
             {
-              newSection > 0 && newSection !== 234 &&
+              newSection > 0 &&
               <TouchableOpacity style={{marginLeft: 8, marginRight: 8}} onPress={() => setNewSection(newSection - 1)}>
-                <Feather name="chevron-left" size={26} color="black" />
-              </TouchableOpacity>
-            }
-            {
-              newSection === 234 &&
-              <TouchableOpacity style={{marginLeft: 8, marginRight: 8}} onPress={() => setNewSection(2)}>
                 <Feather name="chevron-left" size={26} color="black" />
               </TouchableOpacity>
             }
@@ -635,31 +623,17 @@ export default function Distributors({navigation}) {
             }
             {
               newSection === 3 &&
-              <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary, {marginTop: 10}]}>Select Retailer State</Text>
-            }
-            {
-              newSection === 4 &&
               <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary, {marginTop: 10}]}>Enter Retailer Address</Text>
-            }
-            {
-              newSection === 234 &&
-              <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary, {marginTop: 10}]}>Confirm Retailer Address</Text>
             }
             <View style={styles.spacer}></View>
             {
-              newSection !== 4 && newSection !== 2 && newSection !== 234 &&
+              newSection !== 3 &&
               <TouchableOpacity style={{marginLeft: 8, marginRight: 8}} onPress={() => setNewSection(newSection + 1)}>
                 <Feather name="chevron-right" size={26} color="black" />
               </TouchableOpacity>
             }
             {
-              newSection === 2 &&
-              <TouchableOpacity style={{marginLeft: 8, marginRight: 8}} onPress={() => setNewSection(234)}>
-                <Feather name="chevron-right" size={26} color="black" />
-              </TouchableOpacity>
-            }
-            {
-              newSection == 4 &&
+              newSection == 3 && selectedAddressFreeform !== "" &&
               <TouchableOpacity style={{marginLeft: 8, marginRight: 8}} onPress={() => onCreate()}>
                 <Feather name="chevrons-right" size={26} color="black" />
               </TouchableOpacity>
@@ -769,92 +743,32 @@ export default function Distributors({navigation}) {
             {
               newSection === 3 &&
               <>
-                <ScrollView style={{height: 200, marginBottom: 20}}>
-                  <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setStateCode("IL"); setNewSection(5)}}>
-                    <Text style={[styles.baseText, stateCode === "IL" ? styles.primary : styles.tertiary]}>Illinois</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setStateCode("WI"); setNewSection(5)}}>
-                    <Text style={[styles.baseText, stateCode === "WI" ? styles.primary : styles.tertiary]}>Wisconsin</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setStateCode("IN"); setNewSection(5)}}>
-                    <Text style={[styles.baseText, stateCode === "IN" ? styles.primary : styles.tertiary]}>Indiana</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setStateCode("NY"); setNewSection(5)}}>
-                    <Text style={[styles.baseText, stateCode === "NY" ? styles.primary : styles.tertiary]}>New York</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setStateCode("NJ"); setNewSection(5)}}>
-                    <Text style={[styles.baseText, stateCode === "NJ" ? styles.primary : styles.tertiary]}>New Jersey</Text>
-                  </TouchableOpacity>
+                <TextInput
+                  style={[{marginBottom: 30, width: '100%'}, styles.baseInput]}
+                  placeholder="Search address..."
+                  placeholderTextColor="#888"
+                  keyboardType="default"
+                  value={addressSearch}
+                  onChangeText={(text) => {
+                    setAddressSearch(text)
+                  }}
+                />
+                {
+                  autocompletedAddresses.length > 0 &&
+                  <Text style={[styles.baseText, styles.bold, styles.tertiary, {marginTop: 0}]}>Select Address</Text>
+                }
+
+                <ScrollView style={{height: 200, marginBottom: 10}}>
+                  {
+                    autocompletedAddresses.map(address => {
+                      return (
+                        <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => onAutocompletedSelect(address)}>
+                          <Text style={[styles.baseText, selectedAddressFreeform == address.address.freeformAddress ? styles.primary : styles.tertiary]}>{address.address.freeformAddress}</Text>
+                        </TouchableOpacity>
+                      )
+                    })
+                  }
                 </ScrollView>
-              </>
-            }
-            {
-              newSection === 4 &&
-              <>
-                <Text style={[styles.baseText, styles.bold, styles.tertiary, {marginTop: 0}]}>Line 1</Text>
-                <TextInput
-                  style={[{marginTop: 10,  marginBottom: 20, width: '100%'}, styles.baseInput]}
-                  placeholder="Enter line 1..."
-                  placeholderTextColor="#888"
-                  keyboardType="default"
-                  value={line1}
-                  onChangeText={(text) => {
-                    setLine1(text)
-                  }}
-                />
-                <Text style={[styles.baseText, styles.bold, styles.tertiary, {marginTop: 0}]}>Line 2</Text>
-                <TextInput
-                  style={[{marginTop: 10,  marginBottom: 20, width: '100%'}, styles.baseInput]}
-                  placeholder="Enter line 2..."
-                  placeholderTextColor="#888"
-                  keyboardType="default"
-                  value={line2}
-                  onChangeText={(text) => {
-                    setLine2(text)
-                  }}
-                />
-                <Text style={[styles.baseText, styles.bold, styles.tertiary, {marginTop: 0}]}>City</Text>
-                <TextInput
-                  style={[{marginTop: 10,  marginBottom: 20, width: '100%'}, styles.baseInput]}
-                  placeholder="Enter city..."
-                  placeholderTextColor="#888"
-                  keyboardType="default"
-                  value={city}
-                  onChangeText={(text) => {
-                    setCity(text)
-                  }}
-                />
-                <Text style={[styles.baseText, styles.bold, styles.tertiary, {marginTop: 0}]}>Postal Code</Text>
-                <TextInput
-                  style={[{marginTop: 10,  marginBottom: 40, width: '100%'}, styles.baseInput]}
-                  placeholder="Enter Postal Code..."
-                  placeholderTextColor="#888"
-                  keyboardType="default"
-                  value={postalCode}
-                  onChangeText={(text) => {
-                    setPostalCode(text)
-                  }}
-                />
-              </>
-            }
-            {
-              newSection === 234 &&
-              <>
-              <Text style={[styles.baseText, styles.bold, styles.tertiary, styles.centerText, {marginTop: 5}]}>{line1}{line2 !== "" ? " " + line2 : ""}, {city}, {stateCode} {postalCode}</Text>
-              <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {marginTop: 30, marginBottom: 40}]}>
-                <TouchableOpacity
-                  onPress={() => setNewSection(4)}
-                  underlayColor='#fff'
-                  style={{marginLeft: 15, marginRight: 15}}>
-                  <Feather name="x" size={32} color={"red"} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => onCreate(true)}
-                  underlayColor='#fff'
-                  style={{marginLeft: 15, marginRight: 15}}>
-                  <Feather name="check" size={32} color={stylesheet.Primary} />
-                </TouchableOpacity>
-              </View>
               </>
             }
           </View>
