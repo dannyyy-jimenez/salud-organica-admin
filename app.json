@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "cbd-salud-sativa-admin",
-    "slug": "cbd-salud-sativa-admin",
+    "name": "Salud Organica",
+    "slug": "saludorganica",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -17,7 +17,11 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.saludorganica.app",
+      "UIBackgroundModes": [
+        "location"
+      ]
     },
     "android": {
       "adaptiveIcon": {

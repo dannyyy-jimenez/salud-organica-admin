@@ -107,7 +107,7 @@ export default function Distributors({navigation}) {
       let dists = []
 
       if (sortBy === 'default') {
-        dists = res.data._d.map(distributor => new Distributor(distributor.identifier, distributor.company, distributor.managers, distributor.address, distributor.lines, distributor.lat, distributor.lng, distributor.status, distributor.route, loc ? loc.coords : location.coords)).sort((a, b) => {
+        dists = res.data._d.map(distributor => new Distributor(distributor.identifier, distributor.company, distributor.managers, distributor.address, distributor.lines, distributor.lat, distributor.lng, distributor.status, distributor.route, loc ? loc.coords : location ? location.coords : {latitude: 0, longitude: 0})).sort((a, b) => {
           let letterA = a.route.split("")[0]
           let letterB = b.route.split("")[0]
 
@@ -132,7 +132,7 @@ export default function Distributors({navigation}) {
         }
         setRouteLetters(uniqueRoutes)
       } else if (sortBy === 'urgency') {
-        dists = res.data._d.map(distributor => new Distributor(distributor.identifier, distributor.company, distributor.managers, distributor.address, distributor.lines, distributor.lat, distributor.lng, distributor.status, distributor.route, loc ? loc.coords : location.coords)).sort((a, b) => b.status - a.status)
+        dists = res.data._d.map(distributor => new Distributor(distributor.identifier, distributor.company, distributor.managers, distributor.address, distributor.lines, distributor.lat, distributor.lng, distributor.status, distributor.route, loc ? loc.coords : location ? location.coords : {latitude: 0, longitude: 0})).sort((a, b) => b.status - a.status)
       }
 
       setDefaultDistributors(dists)
@@ -347,7 +347,9 @@ export default function Distributors({navigation}) {
       return;
     }
 
-    Api.autocomplete(addressSearch, location.coords.latitude, location.coords.longitude).then(res => {
+    Api.autocomplete(addressSearch, location ? location.coords.latitude : null, location ? location.coords.longitude : null).then(res => {
+      if (!res.data.results) return;
+      
       setAutocompletedAddresses(res.data.results.filter(a => a.type === 'Point Address'))
     }).catch(e => {
       console.log(e)

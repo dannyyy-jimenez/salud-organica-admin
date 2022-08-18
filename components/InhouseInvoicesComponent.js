@@ -73,6 +73,8 @@ export default function InvoicesComponent({navigation, route}) {
   const [scopeInvoice, setScopeInvoice] = React.useState(null)
   const [onWiFi, setOnWiFi] = React.useState(false)
   const [search, setSearch] = React.useState("")
+  const [showInvoiceReminders, setShowInvoiceReminders] = React.useState(true)
+  const [invoiceRemindersSection, setInvoiceRemindersSection] = React.useState("DELIVERY")
 
   // invoice creating
 
@@ -401,6 +403,7 @@ export default function InvoicesComponent({navigation, route}) {
 
       load();
 
+      setScopeInvoice(defaultInvoices.find(i => i.identifier === res.data._identifier))
       setInvoiceLine([])
       setInvoiceOwnerIdentifier("")
     } catch (e) {
@@ -971,9 +974,75 @@ export default function InvoicesComponent({navigation, route}) {
       <TouchableOpacity onPress={() => invoiceActionSheetRef.current?.setModalVisible(true)} style={[styles.center, styles.fab]}>
         <Feather name="plus" size={32} color={stylesheet.SecondaryTint} />
       </TouchableOpacity>
-      <ActionSheet containerStyle={{backgroundColor: stylesheet.Secondary}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} onClose={() => {setScopeInvoice(null); setConfirmInvoiceDeleteMode(false); setInvoicePaymentMode(false)}} ref={scopeInvoiceActionSheetRef}>
+      <ActionSheet containerStyle={{backgroundColor: stylesheet.Secondary}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} onClose={() => {setScopeInvoice(null); setConfirmInvoiceDeleteMode(false); setInvoicePaymentMode(false); setShowInvoiceReminders(false); setInvoiceRemindersSection("PRINT")}} ref={scopeInvoiceActionSheetRef}>
         {
-          scopeInvoice && !confirmInvoiceDeleteMode && !invoicePaymentMode &&
+          scopeInvoice && showInvoiceReminders && invoiceRemindersSection === "PRINT" &&
+          <View style={{padding: 15, marginBottom: 40}}>
+            <View style={[styles.defaultRowContainer, styles.fullWidth, {marginBottom: 40}]}>
+              <View style={styles.spacer}></View>
+              <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary]}>Invoice #{scopeInvoice.identifier}</Text>
+              <View style={styles.spacer}></View>
+            </View>
+
+            <TouchableOpacity onPress={() => GetPrintableURI(scopeInvoice.identifier)} style={[styles.defaultRowContainer, styles.fullWidth, styles.center]}>
+              <Feather name="printer" size={36} color={stylesheet.Primary} />
+            </TouchableOpacity>
+
+            <Text style={[styles.subHeaderText, styles.bold, styles.centerText, styles.tertiary]}>You might want to print the invoice</Text>
+
+            <View style={[styles.defaultColumnContainer, styles.marginWidth, styles.center, {marginTop: 30}]}>
+              <Text style={[styles.base, styles.bold, styles.fullWidth, styles.tertiary, {marginBottom: 10}]}>Steps to Print On the Go</Text>
+              <Text style={[styles.base, styles.bold, styles.marginWidth, styles.tertiary]}>1. Tap printer icon</Text>
+              <Text style={[styles.base, styles.bold, styles.marginWidth, styles.tertiary]}>2. Select "Print"</Text>
+              <Text style={[styles.base, styles.bold, styles.marginWidth, styles.tertiary]}>3. Share to or Open with Paperrang App</Text>
+              <Text style={[styles.base, styles.bold, styles.marginWidth, styles.tertiary]}>4. Print!</Text>
+            </View>
+
+            <TouchableOpacity onPress={() => {setInvoiceRemindersSection("DELIVERY")}} style={[styles.roundedButton, styles.filled, {marginLeft: '7.5%', marginTop: 30}]}>
+              <Text style={[styles.secondary, styles.bold]}>Finished</Text>
+            </TouchableOpacity>
+          </View>
+        }
+        {
+          scopeInvoice && showInvoiceReminders && invoiceRemindersSection === "DELIVERY" &&
+          <View style={{padding: 15, marginBottom: 40}}>
+            <View style={[styles.defaultRowContainer, styles.fullWidth, {marginBottom: 40}]}>
+              <View style={styles.spacer}></View>
+              <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary]}>Invoice #{scopeInvoice.identifier}</Text>
+              <View style={styles.spacer}></View>
+            </View>
+
+            <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center]}>
+              <Feather name="truck" size={36} color="black" />
+            </View>
+            <Text style={[styles.subHeaderText, styles.bold, styles.centerText, styles.tertiary]}>Don't forget to mark as delivered</Text>
+
+            <TouchableOpacity onPress={() => {TopUpDelivery(scopeInvoice); setInvoiceRemindersSection("PICTURE")}} style={[styles.roundedButton, styles.filled, {marginLeft: '7.5%', marginTop: 30}]}>
+              <Text style={[styles.secondary, styles.bold]}>Delivered!</Text>
+            </TouchableOpacity>
+          </View>
+        }
+        {
+          scopeInvoice && showInvoiceReminders && invoiceRemindersSection === "PICTURE" &&
+          <View style={{padding: 15, marginBottom: 40}}>
+            <View style={[styles.defaultRowContainer, styles.fullWidth, {marginBottom: 40}]}>
+              <View style={styles.spacer}></View>
+              <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary]}>Invoice #{scopeInvoice.identifier}</Text>
+              <View style={styles.spacer}></View>
+            </View>
+
+            <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center]}>
+              <Feather name="camera" size={36} color="black" />
+            </View>
+            <Text style={[styles.subHeaderText, styles.bold, styles.centerText, styles.tertiary]}>Don't forget to take pictures of product placement</Text>
+
+            <TouchableOpacity onPress={() => {setShowInvoiceReminders(false);setInvoiceRemindersSection('PRINT')}} style={[styles.roundedButton, styles.filled, {marginLeft: '7.5%', marginTop: 30}]}>
+              <Text style={[styles.secondary, styles.bold]}>Done!</Text>
+            </TouchableOpacity>
+          </View>
+        }
+        {
+          scopeInvoice && !showInvoiceReminders && !confirmInvoiceDeleteMode && !invoicePaymentMode &&
           <View style={{padding: 15}}>
             <View style={[styles.defaultRowContainer, styles.fullWidth]}>
               <View style={styles.spacer}></View>
