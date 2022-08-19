@@ -60,7 +60,7 @@ export default function DashboardComponent({navigation}) {
       setPendingOrders(res.data._o.filter(o => !o.fulfilled))
 
       setPhysicalSales(res.data._i.map(i => i.total).reduce((total, next) => total + next, 0))
-      setOverdueInvoices(res.data._i.filter(i => !i.paid && moment().diff(moment(i.due)) >= 0))
+      setOverdueInvoices(res.data._i.filter(i => !i.paid && moment().diff(moment(i.due, "MM/DD/YY")) >= 0))
       setPermissions(res.data._p)
       setTrends(res.data._trends)
 
@@ -175,7 +175,7 @@ export default function DashboardComponent({navigation}) {
             </View>
           }
           {
-            permissions.includes("STATS") && 
+            permissions.includes("STATS") &&
             <View style={[styles.analyticCard, styles.elevated, {backgroundColor: '#40BA91'}]}>
               <Text style={[styles.subHeaderText, styles.bold, styles.secondary]}>YTD Physical Sales</Text>
 

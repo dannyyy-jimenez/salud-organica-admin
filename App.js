@@ -5,7 +5,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Feather, FontAwesome5, Ionicons } from '@expo/vector-icons';
-import { Appearance, AppearanceProvider, useColorScheme } from 'react-native-appearance';
+import { Appearance } from 'react-native';
 import LottieView from 'lottie-react-native';
 import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
@@ -145,7 +145,7 @@ export default function App() {
   const [notificationObject, setNotificationObject] = React.useState({})
   const [notifToken, setNotificationToken] = React.useState(null)
   const [userDeviceID, setUserDeviceID] = React.useState(null)
-  const colorScheme = useColorScheme();
+  const colorScheme = Appearance.getColorScheme();
   const [permissions, setPermissions] = React.useState([])
 
   React.useEffect(() => {
@@ -195,7 +195,8 @@ export default function App() {
        setUserDeviceID(savedUUID)
 
        const res = await API.get('/admin/auth', {uuid: savedUUID})
-       if (res.data.auth) {
+       console.log(res)
+       if (res.data && res.data.auth) {
          setPermissions(res.data._p)
          setAuthenticated(true)
        }

@@ -19,9 +19,11 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.saludorganica.app",
-      "UIBackgroundModes": [
-        "location"
-      ]
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "location"
+        ]  
+      }
     },
     "android": {
       "adaptiveIcon": {
