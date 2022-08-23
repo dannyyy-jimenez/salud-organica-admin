@@ -23,6 +23,4 @@ function getEnvVars() {
   return ENV.dev;
 }
 
-console.log(JSON.stringify(getEnvVars()))
-
 export default getEnvVars();

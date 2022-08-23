@@ -296,8 +296,6 @@ export default function App() {
               permissions.includes("ORDERS") &&
               <Tab.Screen name="Orders" component={OrdersStackComponent} />
             }
-            <Tab.Screen name="Orders" component={OrdersStackComponent} />
-
             <Tab.Screen name="Invoices" component={InboxStackComponent} />
             <Tab.Screen name="Retailers" component={DistributorsStackComponent} />
           </Tab.Navigator>

@@ -349,7 +349,7 @@ export default function Distributors({navigation}) {
 
     Api.autocomplete(addressSearch, location ? location.coords.latitude : null, location ? location.coords.longitude : null).then(res => {
       if (!res.data.results) return;
-      
+
       setAutocompletedAddresses(res.data.results.filter(a => a.type === 'Point Address'))
     }).catch(e => {
       console.log(e)
@@ -479,14 +479,17 @@ export default function Distributors({navigation}) {
                 // Just click the one you like, place that file in the 'assets' folder to the left, and replace the above 'require' statement
               />
           }
-          <TextInput
-            style={[{marginTop: 5,  marginBottom: 20, width: '100%'}, styles.baseInput]}
-            placeholder="Search"
-            placeholderTextColor={stylesheet.Tertiary}
-            numberOfLines={1}
-            value={search}
-            onChangeText={(text) => setSearch(text)}
-          />
+          {
+            !isLoading &&
+            <TextInput
+              style={[{marginTop: 5,  marginBottom: 20, width: '100%'}, styles.baseInput]}
+              placeholder="Search"
+              placeholderTextColor={stylesheet.Tertiary}
+              numberOfLines={1}
+              value={search}
+              onChangeText={(text) => setSearch(text)}
+            />  
+          }
           {
             nearest && filters.sort === 'nearest' && !isLoading &&
             <>
