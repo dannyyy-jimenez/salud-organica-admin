@@ -22,17 +22,23 @@
       "infoPlist": {
         "UIBackgroundModes": [
           "location"
-        ]  
+        ]
       }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
-      }
+      },
+      "package": "com.saludorganica.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "39ba6685-0536-4656-9e58-fed0916d9e67"
+      }
     }
   }
 }

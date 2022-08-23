@@ -79,6 +79,10 @@ export default function OrdersComponent({navigation}) {
 
   const getType = (t) => {
     if (t.includes('oil')) return 'Oil'
+    if (t.includes('tablets')) return 'Tablets'
+    if (t.includes('cream')) return 'Cream'
+    if (t.includes('rollon')) return 'Rollon'
+    if (t.includes('rubbing')) return 'Alcohol'
     if (t === 'gummies-sourapple') return 'Sour Apple Gummies';
     if (t === 'gummies-tropical') return 'Tropical Gummies';
     if (t === 'gummies-berries') return 'Berries Gummies';
@@ -114,7 +118,7 @@ export default function OrdersComponent({navigation}) {
             return (
               <TouchableOpacity activeOpacity={order.fulfilled ? 0.3 : 1} key={order.identifier} onPress={() => setOrderIdentifier(order.identifier)} style={[styles.fullStoreCard, order.fulfilled ? styles.disabled : {}, styles.elevated]}>
                 <View style={[styles.fullSCImage, styles.flexible, styles.center, {height: 230}]}>
-                  <Image style={styles.fullSCImage} source={{uri: `https://res.cloudinary.com/cbd-salud-sativa/image/upload/f_auto,q_auto/${order.products[0]?.product.shots[0]}`}} />
+                  <Image style={styles.fullSCImage} source={{uri: `https://res.cloudinary.com/cbd-salud-sativa/image/upload/f_auto,q_auto,w_400/${order.products[0]?.product.shots[0]}`}} />
                 </View>
                 <View style={styles.defaultColumnContainer, styles.fullWidth, styles.fullSCContent}>
                   <View style={[styles.defaultRowContainer, styles.fullWidth]}>
@@ -204,7 +208,7 @@ export default function OrdersComponent({navigation}) {
                     return (
                       <TouchableOpacity activeOpacity={1} key={product._id} style={styles.defaultStoreCard}>
                         <View style={[styles.defaultSCImage, styles.flexible, styles.center, {height: 170}]}>
-                          <Image style={styles.defaultSCImage} source={{uri: `https://res.cloudinary.com/cbd-salud-sativa/image/upload/f_auto,q_auto/${product.product.shots[0]}`}} />
+                          <Image style={styles.defaultSCImage} source={{uri: `https://res.cloudinary.com/cbd-salud-sativa/image/upload/f_auto,q_auto,w_300/${product.product.shots[0]}`}} />
                         </View>
                         <View style={styles.defaultColumnContainer, styles.fullWidth, styles.defaultSCContent}>
                           <View style={[styles.defaultRowContainer, styles.fullWidth]}>

@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@babel/helper-get-function-arity": "^7.16.7",
+    "@expo/webpack-config": "^0.17.0",
     "@jridgewell/gen-mapping": "^0.3.2",
     "@react-native-picker/picker": "2.4.2",
     "@react-navigation/bottom-tabs": "^6.0.7",

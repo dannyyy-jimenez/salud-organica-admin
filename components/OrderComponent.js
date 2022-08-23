@@ -79,7 +79,7 @@ export default function OrderComponent({navigation, route}) {
                 width: '100%',
                 backgroundColor: '#fff',
               }}
-              source={require('../assets/9511-loading.json')}
+              source={require('../assets/loading-leaf.json')}
             />
         }
         {

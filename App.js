@@ -195,7 +195,6 @@ export default function App() {
        setUserDeviceID(savedUUID)
 
        const res = await API.get('/admin/auth', {uuid: savedUUID})
-       console.log(res)
        if (res.data && res.data.auth) {
          setPermissions(res.data._p)
          setAuthenticated(true)
@@ -231,7 +230,7 @@ export default function App() {
               }}
               autoPlay={true}
               loop={true}
-              source={require('./assets/9511-loading.json')}
+              source={require('./assets/loading-leaf.json')}
             />
         </View>
       }
@@ -297,6 +296,8 @@ export default function App() {
               permissions.includes("ORDERS") &&
               <Tab.Screen name="Orders" component={OrdersStackComponent} />
             }
+            <Tab.Screen name="Orders" component={OrdersStackComponent} />
+
             <Tab.Screen name="Invoices" component={InboxStackComponent} />
             <Tab.Screen name="Retailers" component={DistributorsStackComponent} />
           </Tab.Navigator>

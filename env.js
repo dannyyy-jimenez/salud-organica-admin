@@ -1,9 +1,10 @@
 import Constants from 'expo-constants';
+import * as Updates from 'expo-updates';
 
 const ENV = {
   dev: {
-    baseUrl: 'http://10.0.0.102:80', // 10.0.0.102 10.1.10.102
-    apiUrl: "http://10.0.0.102:80/api/"
+    baseUrl: 'http://10.1.10.102:80', // 10.0.0.102 10.1.10.102
+    apiUrl: "http://10.1.10.102:80/api/"
   },
   staging: {
     baseUrl: 'http://10.1.10.102:80',  //10.0.0.102  10.1.10.103
@@ -15,12 +16,13 @@ const ENV = {
   }
 };
 
-function getEnvVars(env = "") {
-  if (!env || env === null || env === undefined || env === "") return ENV.dev;
-  if (env.indexOf("dev") !== -1) return ENV.dev;
-  if (env.indexOf("staging") !== -1) return ENV.staging;
-  if (env.indexOf("prod") !== -1) return ENV.prod;
-  return ENV.prod;
+function getEnvVars() {
+  if (Updates.releaseChannel.startsWith('staging')) return ENV.staging;
+  if (Updates.releaseChannel.startsWith('prod')) return ENV.prod;
+
+  return ENV.dev;
 }
 
-export default getEnvVars(Constants.manifest.releaseChannel);
+console.log(JSON.stringify(getEnvVars()))
+
+export default getEnvVars();

@@ -183,7 +183,7 @@ export default function PackingSlip({navigation}) {
                 width: '100%',
                 backgroundColor: '#fff',
               }}
-              source={require('..//assets/9511-loading.json')}
+              source={require('..//assets/loading-leaf.json')}
               // OR find more Lottie files @ https://lottiefiles.com/featured
               // Just click the one you like, place that file in the 'assets' folder to the left, and replace the above 'require' statement
             />
