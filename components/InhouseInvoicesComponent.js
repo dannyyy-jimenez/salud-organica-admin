@@ -29,6 +29,7 @@ let styles = stylesheet.Styles;
 const invoiceActionSheetRef = React.createRef();
 const scopeInvoiceActionSheetRef = React.createRef();
 const productLotSearchActionSheetRef = React.createRef();
+const quickbooksAuthenticateActionSheetRef = React.createRef();
 
 class Distributor {
   constructor(identifier, company, managers, address, lines, lat, lng, status, route, location) {
@@ -73,10 +74,11 @@ export default function InvoicesComponent({navigation, route}) {
   const [scopeInvoice, setScopeInvoice] = React.useState(null)
   const [onWiFi, setOnWiFi] = React.useState(false)
   const [search, setSearch] = React.useState("")
-  const [showInvoiceReminders, setShowInvoiceReminders] = React.useState(true)
-  const [invoiceRemindersSection, setInvoiceRemindersSection] = React.useState("DELIVERY")
+  const [showInvoiceReminders, setShowInvoiceReminders] = React.useState(false)
+  const [invoiceRemindersSection, setInvoiceRemindersSection] = React.useState("PRINT")
 
   // invoice creating
+  const [authenticatedQuickbooks, setAuthenticatedQuickbooks] = React.useState(false)
 
   const [invoiceOwnerIdentifier, setInvoiceOwnerIdentifier] = React.useState('')
   const [invoiceLine, setInvoiceLine] = React.useState([])
@@ -118,7 +120,7 @@ export default function InvoicesComponent({navigation, route}) {
     data: []
   })
 
-  const load = async (loc = null) => {
+  const load = async (loc = null, scopify = null) => {
     setIsLoading(true)
     setInvoices([])
     setDefaultInvoices([])
@@ -163,9 +165,17 @@ export default function InvoicesComponent({navigation, route}) {
 
       let prevSearch = search;
 
+      setAuthenticatedQuickbooks(res.data.quickbooksAuthSetup)
+      if (!res.data.quickbooksAuthSetup) {
+        quickbooksAuthenticateActionSheetRef.current?.setModalVisible(true)
+      }
       setSearch('')
       setSearch(prevSearch)
       setIsLoading(false);
+
+      if (scopify) {
+        return res.data.invoices.find(i => i.identifier == scopify)
+      }
     } catch (e) {
       console.log(e)
       setIsLoading(false)
@@ -228,11 +238,11 @@ export default function InvoicesComponent({navigation, route}) {
         paid.push(invoice.total)
       }
 
-      if (!invoice.paid && moment().diff(moment(invoice.due)) >= 0) {
+      if (!invoice.paid && moment().diff(moment(invoice.due, 'MM/DD/YY')) >= 0) {
         overdue.push(invoice.total)
       }
 
-      if (!invoice.paid && moment().diff(moment(invoice.due)) < 0) {
+      if (!invoice.paid && moment().diff(moment(invoice.due, 'MM/DD/YY')) < 0) {
         pending.push(invoice.total)
       }
 
@@ -262,6 +272,7 @@ export default function InvoicesComponent({navigation, route}) {
   React.useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
+
       if (status !== 'granted') {
         setErrorMsg('Permission to access location was denied');
         return;
@@ -317,11 +328,11 @@ export default function InvoicesComponent({navigation, route}) {
       return;
     }
     if (search === "OVRD") {
-      setInvoices(defaultInvoices.filter(invoice => !invoice.paid && moment().diff(moment(invoice.due)) >= 0))
+      setInvoices(defaultInvoices.filter(invoice => !invoice.paid && moment().diff(moment(invoice.due, 'MM/DD/YY')) >= 0))
       return;
     }
     if (search === "PNDNG") {
-      setInvoices(defaultInvoices.filter(invoice => !invoice.paid && moment().diff(moment(invoice.due)) < 0))
+      setInvoices(defaultInvoices.filter(invoice => !invoice.paid && moment().diff(moment(invoice.due, 'MM/DD/YY')) < 0))
       return;
     }
     if (search === "PAID") {
@@ -338,7 +349,7 @@ export default function InvoicesComponent({navigation, route}) {
   }, [scopeInvoice])
 
   React.useEffect(() => {
-    if (invoiceLineItemRefIdentifier == "") return;
+    if (invoiceLineItemRefIdentifier == "" || invoiceLineItemRefCost !== "") return;
 
     setInvoiceLineItemRefCost(products.find(p => p.identifier === invoiceLineItemRefIdentifier).distributorPrice.toFixed(2))
 
@@ -401,9 +412,10 @@ export default function InvoicesComponent({navigation, route}) {
 
       if (res.isError) throw 'error';
 
-      load();
+      let scopified = await load(false, res.data._identifier);
 
-      setScopeInvoice(defaultInvoices.find(i => i.identifier === res.data._identifier))
+      setShowInvoiceReminders(true)
+      setScopeInvoice(scopified)
       setInvoiceLine([])
       setInvoiceOwnerIdentifier("")
     } catch (e) {
@@ -537,7 +549,7 @@ export default function InvoicesComponent({navigation, route}) {
     setIsLoading(true);
 
     try {
-      const res = await API.post('/admin/invoice/actions/payment', {identifier: scopeInvoice.identifier, amount: invoicePaymentAmount, memo: invoicePaymentMemo, cash: invoicePaymentIsCash ? 'CASH' : 'CHECK', ref: invoicePaymentRef});
+      const res = await API.post('/admin/invoice/actions/payment', {identifier: scopeInvoice.identifier, amount: invoicePaymentAmount, memo: invoicePaymentMemo, type: invoicePaymentIsCash ? 'CASH' : 'CHECK', ref: invoicePaymentRef});
       console.log(res)
       if (res.isError) throw 'error';
 
@@ -573,6 +585,31 @@ export default function InvoicesComponent({navigation, route}) {
       if (prod) {
         setProductSearchIden(prod.identifier)
       }
+    }
+  }
+
+  const QuickbooksAuthSetup = async () => {
+    try {
+      const res = await API.get('/admin/auth/quickbooks', {});
+
+      if (res.isError) throw 'error';
+
+      let result = await WebBrowser.openAuthSessionAsync(res.data.authUri);
+      VerifyQuickbooksAuth();
+    } catch (e) {
+      console.log(e)
+    }
+  }
+
+  const VerifyQuickbooksAuth = async () => {
+    try {
+      const res = await API.get('/admin/auth/quickbooks/verify', {});
+
+      if (res.isError || !res.data.valid) throw 'error';
+
+      setAuthenticatedQuickbooks(true)
+    } catch (e) {
+      setIsLoading(false);
     }
   }
 
@@ -626,7 +663,7 @@ export default function InvoicesComponent({navigation, route}) {
           </>
         }
       </View>
-      <ScrollView contentOffset={{y: 320}} style={styles.defaultTabScrollContent} contentContainerStyle={{alignItems: 'flex-start', justifyContent: 'flex-start', width: '96%', marginLeft: '2%', paddingBottom: 70}} refreshControl={<RefreshControl refreshing={isLoading} tintColor={"white"} colors={[stylesheet.Primary]} onRefresh={load} />}>
+      <ScrollView contentOffset={{x: 0, y: 800}} style={styles.defaultTabScrollContent} contentContainerStyle={{alignItems: 'center', justifyContent: 'flex-start', width: '100%', paddingBottom: 70}} refreshControl={<RefreshControl refreshing={isLoading} tintColor={"white"} colors={[stylesheet.Primary]} onRefresh={load} />}>
         {
           isLoading &&
           <LottieView
@@ -655,7 +692,7 @@ export default function InvoicesComponent({navigation, route}) {
               onChangeText={(text) => setSearch(text)}
             />
 
-            <View style={[styles.defaultRowContainer, styles.marginWidth, styles.justifyCenter, {marginTop: 20, height: 'auto'}]}>
+            <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={[styles.marginWidth, styles.justifyCenter, {marginTop: 40, marginBottom: 40, height: 'auto'}]} contentContainerStyle={{flexGrow: 1}}>
               {
                 overdue.length > 0 &&
                 <View style={[styles.analyticCard, styles.elevated, {backgroundColor: '#FF3131'}]}>
@@ -703,7 +740,7 @@ export default function InvoicesComponent({navigation, route}) {
                   </TouchableOpacity>
                 </View>
               }
-            </View>
+            </ScrollView>
 
             <View style={[styles.defaultRowContainer, styles.marginWidth, styles.justifyCenter, {marginTop: 20, height: 'auto'}]}>
 
@@ -945,7 +982,7 @@ export default function InvoicesComponent({navigation, route}) {
                       #{invoice.identifier}
                     </Text>
                   </View>
-                  <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {padding: 10, marginTop: 10}]}>
+                  <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {padding: 10, marginTop: 10, marginBottom: 20}]}>
                     <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => GetPrintableURI(invoice.identifier)}>
                       <Feather name="printer" size={28} color="black" />
                       <Text style={{marginTop: 5, fontSize: 12}}>Print</Text>
@@ -971,7 +1008,7 @@ export default function InvoicesComponent({navigation, route}) {
           })
         }
       </ScrollView>
-      <TouchableOpacity onPress={() => invoiceActionSheetRef.current?.setModalVisible(true)} style={[styles.center, styles.fab]}>
+      <TouchableOpacity onPress={() => authenticatedQuickbooks ? invoiceActionSheetRef.current?.setModalVisible(true) : quickbooksAuthenticateActionSheetRef.current?.setModalVisible(true)} style={[styles.center, styles.fab]}>
         <Feather name="plus" size={32} color={stylesheet.SecondaryTint} />
       </TouchableOpacity>
       <ActionSheet containerStyle={{backgroundColor: stylesheet.Secondary}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} onClose={() => {setScopeInvoice(null); setConfirmInvoiceDeleteMode(false); setInvoicePaymentMode(false); setShowInvoiceReminders(false); setInvoiceRemindersSection("PRINT")}} ref={scopeInvoiceActionSheetRef}>
@@ -1151,7 +1188,7 @@ export default function InvoicesComponent({navigation, route}) {
         }
         {
           scopeInvoice && invoicePaymentMode &&
-          <View style={{padding: 15}}>
+          <View style={{padding: 15, paddingBottom: 45}}>
             <View style={[styles.defaultRowContainer, styles.fullWidth]}>
               <View style={styles.spacer}></View>
               <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary]}>Invoice #{scopeInvoice.identifier}</Text>
@@ -1167,7 +1204,7 @@ export default function InvoicesComponent({navigation, route}) {
                       width: '50%',
                       marginTop: 20,
                       marginLeft: '12%',
-                      marginBottom: 20
+                      marginBottom: 40
                     }}
                     autoPlay
                     loop
@@ -1205,7 +1242,7 @@ export default function InvoicesComponent({navigation, route}) {
                   placeholderTextColor="#888"
                   style={[{marginTop: 25,  marginBottom: 20, width: '100%'}, styles.baseInput]}
                   placeholder="Enter memo / note"
-                  keyboardType="numeric"
+                  keyboardType="default"
                   value={invoicePaymentMemo}
                   onChangeText={(text) => {
                     setInvoicePaymentMemo(text)
@@ -1250,10 +1287,10 @@ export default function InvoicesComponent({navigation, route}) {
               <View style={styles.spacer}></View>
             </View>
             <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary, {marginTop: 25, marginBottom: 10}]}>Are you sure you want to delete this invoice?</Text>
-            <Text style={[styles.tinyText, styles.centerText, styles.tertiary, styles.bold, styles.opaque, {marginBottom: 20}]}>Long hold trash icon to confirm</Text>
+            <Text style={[styles.tinyText, styles.centerText, styles.tertiary, styles.bold, styles.opaque, {marginBottom: 20}]}>Press trash icon to confirm</Text>
             <View style={styles.defaultColumnContainer, styles.fullWidth, styles.fullSCContent, {backgroundColor: 'white', paddingBottom: 0}}>
               <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {marginTop: 10}]}>
-                <TouchableOpacity style={{marginLeft: 15, marginRight: 15, marginBottom: 20}} onLongPress={() => onDeleteInvoice(scopeInvoice.identifier)}>
+                <TouchableOpacity style={{marginLeft: 15, marginRight: 15, marginBottom: 20}} onPress={() => onDeleteInvoice(scopeInvoice.identifier)}>
                   <Feather name="trash-2" size={40} color="red" />
                 </TouchableOpacity>
               </View>
@@ -1350,7 +1387,7 @@ export default function InvoicesComponent({navigation, route}) {
 
                 {
                   invoiceLine.length > 0 &&
-                  <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Total: ${invoiceLine.reduce((total, next) => total = next.amount, 0)}</Text>
+                  <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Total: ${(invoiceLine.reduce((total, next) => total += next.amount, 0)).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
                 }
                 {
                   invoiceLine.length > 0 &&
@@ -1521,6 +1558,42 @@ export default function InvoicesComponent({navigation, route}) {
             </View>
           }
         </View>
+      </ActionSheet>
+
+      <ActionSheet containerStyle={{backgroundColor: stylesheet.Secondary}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} ref={quickbooksAuthenticateActionSheetRef}>
+        {
+          authenticatedQuickbooks &&
+          <View style={{paddingTop: 10, paddingBottom: 30}}>
+            <LottieView
+                ref={animationRef}
+                style={{
+                  width: '100%',
+                  backgroundColor: '#fff',
+                }}
+                autoPlay
+                loop
+                source={require('../assets/33886-check-okey-done.json')}
+                // OR find more Lottie files @ https://lottiefiles.com/featured
+                // Just click the one you like, place that file in the 'assets' folder to the left, and replace the above 'require' statement
+              />
+          </View>
+        }
+        {
+          !authenticatedQuickbooks &&
+          <View style={{paddingTop: 10, paddingBottom: 30}}>
+            <View style={[styles.defaultRowContainer, styles.fullWidth, {marginBottom: 10}]}>
+              <View style={styles.spacer}></View>
+              <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary]}>Quickbooks Authentication Setup Needed</Text>
+              <View style={styles.spacer}></View>
+            </View>
+
+            <Text style={[styles.baseText, styles.marginWidth, styles.tertiary]}>In order to create invoices you must first link your Quickbooks account</Text>
+
+            <TouchableOpacity onPress={() => QuickbooksAuthSetup()} style={[styles.roundedButton, styles.filled, {marginLeft: '7.5%', marginTop: 30}]}>
+              <Text style={[styles.secondary, styles.bold]}>Setup</Text>
+            </TouchableOpacity>
+          </View>
+        }
       </ActionSheet>
     </SafeAreaView>
   );

@@ -735,14 +735,16 @@ export default function DistributorComponent({navigation, route}) {
               <TouchableOpacity
                 onPress={() => navigation.navigate('DistributorDepth', {identifier: route.params.identifier, company: route.params.company})}
                 underlayColor='#fff'
-                style={{marginLeft: 10, marginRight: 10}}>
+                style={[{marginLeft: 10, marginRight: 10}, styles.center]}>
                 <Feather name="bar-chart-2" size={26} color={stylesheet.Primary} />
+                <Text style={{marginTop: 5, fontSize: 12, color: stylesheet.Primary}}>Analytics</Text>
               </TouchableOpacity>
             }
             <TouchableOpacity
               onPress={() => {infoSheetRef.current?.setModalVisible(false); setTimeout(() => herenciaUpkeepSheetRef.current?.setModalVisible(true), 500)}}
-              underlayColor='#fff'>
+              underlayColor='#fff' style={[{marginLeft: 10, marginRight: 10}, styles.center]}>
               <Feather name="layout" size={24} color={stylesheet.Primary} />
+              <Text style={{marginTop: 5, fontSize: 12, color: stylesheet.Primary}}>Layout</Text>
             </TouchableOpacity>
           </View>
         </View>

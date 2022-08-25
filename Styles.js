@@ -349,17 +349,19 @@ const Styles = StyleSheet.create({
   },
   fullStoreCard: {
     minHeight: 100,
-    width: 350,
+    width: 360,
     marginLeft: 10,
     marginRight: 10,
-    maxWidth: '98%',
+    maxWidth: Dimensions.get('window').width * 0.98,
     marginTop: 20,
     marginBottom: 20
   },
   fullInvoice: {
     minHeight: 200,
-    width: '100%',
-    maxWidth: '100%',
+    width: 360,
+    maxWidth: Dimensions.get('window').width * 0.90,
+    marginLeft: 10,
+    marginRight: 10,
     marginTop: 20,
     marginBottom: 20,
     borderRadius: 5,
@@ -404,12 +406,15 @@ const Styles = StyleSheet.create({
   analyticCard: {
     height: 220,
     marginRight: 20,
-    width: 160,
+    flex: 1,
+    minWidth: 160,
+    width: 'auto',
     borderRadius: 5,
     flexDirection: 'column',
     justifyContent: 'space-around',
     backgroundColor: 'white',
     padding: 10,
+    paddingRight: 30
   },
   analyticCardF: {
     height: 250,

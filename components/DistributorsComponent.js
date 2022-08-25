@@ -488,7 +488,7 @@ export default function Distributors({navigation}) {
               numberOfLines={1}
               value={search}
               onChangeText={(text) => setSearch(text)}
-            />  
+            />
           }
           {
             nearest && filters.sort === 'nearest' && !isLoading &&
@@ -521,7 +521,7 @@ export default function Distributors({navigation}) {
           <View style={[styles.defaultRowContainer, styles.fullWidth, styles.justifyCenter, {marginBottom: 20, marginTop: 5, height: 'auto'}]}>
             {
               needAttention.length > 0 &&
-              <View style={[styles.analyticCard, styles.elevated, {backgroundColor: '#FF3131'}]}>
+              <View style={[styles.analyticCard, {width: 170, flex: 'auto'}, styles.elevated, {backgroundColor: '#FF3131'}]}>
                 <Text style={[styles.subHeaderText, styles.bold, styles.secondary]}>Need Attention</Text>
 
                 <View style={[styles.fullWidth, styles.defaultColumnContainer]}>
