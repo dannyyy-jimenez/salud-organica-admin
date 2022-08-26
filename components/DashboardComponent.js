@@ -198,7 +198,7 @@ export default function DashboardComponent({navigation}) {
             </View>
           }
           {
-            <View style={[styles.analyticCard, styles.elevated, {backgroundColor: '#60C6A3'}]}>
+            <View style={[styles.analyticCard, styles.elevated, {width: 170, backgroundColor: '#60C6A3'}]}>
               <Text style={[styles.subHeaderText, styles.bold, styles.secondary]}>Retail Distributors</Text>
 
               <View style={[styles.fullWidth, styles.defaultColumnContainer]}>

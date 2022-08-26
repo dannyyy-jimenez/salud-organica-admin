@@ -8,6 +8,7 @@ import * as Location from 'expo-location';
 import haversine from 'haversine-distance'
 import {Picker} from '@react-native-picker/picker';
 import Checkbox from 'expo-checkbox';
+import openMap from 'react-native-open-maps';
 
 let stylesheet = require('../Styles')
 let styles = stylesheet.Styles;
@@ -46,6 +47,7 @@ class Distributor {
 }
 
 export default function Distributors({navigation}) {
+  const [permissions, setPermissions] = React.useState([])
   const [defaultDistributors, setDefaultDistributors] = React.useState([])
   const [distributors, setDistributors] = React.useState([])
   const animationRef = React.useRef(null)
@@ -141,6 +143,7 @@ export default function Distributors({navigation}) {
         dists = dists.slice().filter(dist => dist.route.includes(routeLetter))
       }
 
+      setPermissions(res.data._permissions)
       setDistributors(dists)
       setIsLoading(false)
     } catch (e) {
@@ -202,7 +205,7 @@ export default function Distributors({navigation}) {
     })();
   }, []);
 
-  const openMaps = async (dist) => {
+  const shareMaps = async (dist) => {
     const destination = encodeURIComponent(`${dist.address}`);
 
     try {
@@ -221,6 +224,10 @@ export default function Distributors({navigation}) {
     } catch (error) {
       alert(error.message);
     }
+  }
+
+  const openMaps = async (dist) => {
+    openMap({ latitude: dist.lat, longitude: dist.lng, query: dist.company, end: dist.address });
   }
 
   const FormatStatus = (status) => {
@@ -421,9 +428,20 @@ export default function Distributors({navigation}) {
                   <Text numberOfLines={1} style={[styles.subHeaderText, styles.nunitoText, styles.tertiary, {marginTop: 20, marginBottom: 20}]}>{distributors[routeMode.current].company}</Text>
                 </View>
                 <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {padding: 10, backgroundColor: '#F9F9F9', borderBottomLeftRadius: 10, borderBottomRightRadius: 10}]}>
-                  <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => openMaps(distributors[routeMode.current])}>
-                    <Feather name="map-pin" size={28} color="black" />
-                  </TouchableOpacity>
+                  {
+                    permissions.includes("DIST_CAR_SHAREABLE") &&
+                    <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => shareMaps(distributors[routeMode.current])}>
+                      <Feather name="map-pin" size={28} color="black" />
+                      <Text style={{marginTop: 5, fontSize: 12}}>Navigate</Text>
+                    </TouchableOpacity>
+                  }
+                  {
+                    !permissions.includes("DIST_CAR_SHAREABLE") &&
+                    <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => openMaps(distributors[routeMode.current])}>
+                      <Feather name="map-pin" size={28} color="black" />
+                      <Text style={{marginTop: 5, fontSize: 12}}>Navigate</Text>
+                    </TouchableOpacity>
+                  }
                   <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => findNextRoute()}>
                     <Feather name="check" size={28} color="black" />
                   </TouchableOpacity>
@@ -446,9 +464,20 @@ export default function Distributors({navigation}) {
                       <Text numberOfLines={1} style={[styles.subHeaderText, styles.nunitoText, styles.tertiary, {marginTop: 20, marginBottom: 20}]}>{distributor.company}</Text>
                     </View>
                     <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {padding: 10, backgroundColor: '#F9F9F9', borderBottomLeftRadius: 10, borderBottomRightRadius: 10}]}>
-                      <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => openMaps(distributor)}>
-                        <Feather name="map-pin" size={28} color="black" />
-                      </TouchableOpacity>
+                      {
+                        permissions.includes("DIST_CAR_SHAREABLE") &&
+                        <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => shareMaps(distributor)}>
+                          <Feather name="map-pin" size={28} color="black" />
+                          <Text style={{marginTop: 5, fontSize: 12}}>Navigate</Text>
+                        </TouchableOpacity>
+                      }
+                      {
+                        !permissions.includes("DIST_CAR_SHAREABLE") &&
+                        <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => openMaps(distributor)}>
+                          <Feather name="map-pin" size={28} color="black" />
+                          <Text style={{marginTop: 5, fontSize: 12}}>Navigate</Text>
+                        </TouchableOpacity>
+                      }
                       {
                         distributor.status > 5 &&
                         <View style={{position: 'absolute', left: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopRightRadius: 5, borderBottomLeftRadius: 5, backgroundColor: GetUrgencyColor(distributor.status)}}>
@@ -500,10 +529,20 @@ export default function Distributors({navigation}) {
                   <Text numberOfLines={1} style={[styles.subHeaderText, styles.nunitoText, styles.tertiary, {marginTop: 20, marginBottom: 20}]}>{nearest.company}</Text>
                 </View>
                 <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {padding: 10, backgroundColor: '#F9F9F9', borderBottomLeftRadius: 10, borderBottomRightRadius: 10}]}>
-                  <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => openMaps(distributor)}>
-                    <Feather name="map-pin" size={28} color="black" />
-                    <Text style={{marginTop: 5, fontSize: 12}}>Navigate</Text>
-                  </TouchableOpacity>
+                  {
+                    permissions.includes("DIST_CAR_SHAREABLE") &&
+                    <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => shareMaps(nearest)}>
+                      <Feather name="map-pin" size={28} color="black" />
+                      <Text style={{marginTop: 5, fontSize: 12}}>Navigate</Text>
+                    </TouchableOpacity>
+                  }
+                  {
+                    !permissions.includes("DIST_CAR_SHAREABLE") &&
+                    <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => openMaps(nearest)}>
+                      <Feather name="map-pin" size={28} color="black" />
+                      <Text style={{marginTop: 5, fontSize: 12}}>Navigate</Text>
+                    </TouchableOpacity>
+                  }
                   <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => navigation.navigate("Invoices", {screen: "InboxInhouseInvoices", params: {invoiceOwnerIdentifier: nearest.identifier}})}>
                     <Feather name="file-plus" size={28} color="black" />
                     <Text style={{marginTop: 5, fontSize: 12}}>New Invoice</Text>
@@ -560,10 +599,20 @@ export default function Distributors({navigation}) {
                       <Text numberOfLines={1} style={[styles.subHeaderText, styles.nunitoText, styles.tertiary, {marginTop: 20, marginBottom: 20}]}>{distributor.company}</Text>
                     </View>
                     <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {padding: 10, backgroundColor: '#F9F9F9', borderBottomLeftRadius: 10, borderBottomRightRadius: 10}]}>
-                      <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => openMaps(distributor)}>
-                        <Feather name="map-pin" size={28} color="black" />
-                        <Text style={{marginTop: 5, fontSize: 12}}>Navigate</Text>
-                      </TouchableOpacity>
+                      {
+                        permissions.includes("DIST_CAR_SHAREABLE") &&
+                        <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => shareMaps(distributor)}>
+                          <Feather name="map-pin" size={28} color="black" />
+                          <Text style={{marginTop: 5, fontSize: 12}}>Navigate</Text>
+                        </TouchableOpacity>
+                      }
+                      {
+                        !permissions.includes("DIST_CAR_SHAREABLE") &&
+                        <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => openMaps(distributor)}>
+                          <Feather name="map-pin" size={28} color="black" />
+                          <Text style={{marginTop: 5, fontSize: 12}}>Navigate</Text>
+                        </TouchableOpacity>
+                      }
                       <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => navigation.navigate("Invoices", {screen: "InboxInhouseInvoices", params: {invoiceOwnerIdentifier: distributor.identifier}})}>
                         <Feather name="file-plus" size={28} color="black" />
                         <Text style={{marginTop: 5, fontSize: 12}}>New Invoice</Text>

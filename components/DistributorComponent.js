@@ -21,6 +21,7 @@ let styles = stylesheet.Styles;
 const actionSheetRef = React.createRef();
 const infoSheetRef = React.createRef();
 const herenciaUpkeepSheetRef = React.createRef();
+const managersUpkeepActionsheetRef = React.createRef();
 
 export default function DistributorComponent({navigation, route}) {
   const [lines, setLines] = React.useState([])
@@ -37,6 +38,9 @@ export default function DistributorComponent({navigation, route}) {
   const [projections, setProjections] = React.useState(null)
 
   const [info, setInfo] = React.useState({})
+
+  const [presetManager, setPresetManager] = React.useState('')
+  const [managersHasChanged, setManagersHasChanged] = React.useState(false)
 
   // view range from date 1 to date 2
 
@@ -129,11 +133,6 @@ export default function DistributorComponent({navigation, route}) {
   }
 
   React.useEffect(() => {
-    load()
-  }, [])
-
-
-  React.useEffect(() => {
     if (isLoading) {
       animationRef.current.reset();
       animationRef.current.play();
@@ -157,8 +156,6 @@ export default function DistributorComponent({navigation, route}) {
       setEditMode(false)
       load(true)
 
-      console.log(res)
-
     } catch (e) {
       console.log(e)
       setIsLoading(false)
@@ -171,7 +168,6 @@ export default function DistributorComponent({navigation, route}) {
     try {
       const res = await API.post('/admin/distributors/herencia', {distributorId: route.params.identifier, herencia_displays: info?.herencia_displays, herencia_visibility: info?.herencia_visibility, dist_lanes: info?.dist_lanes});
 
-      console.log(res)
       if (res.isError) throw 'error';
 
       actionSheetRef.current?.setModalVisible(false)
@@ -182,8 +178,6 @@ export default function DistributorComponent({navigation, route}) {
       setEditID(null)
       setEditMode(false)
       load(true)
-
-      console.log(res)
 
     } catch (e) {
       console.log(e)
@@ -281,6 +275,23 @@ export default function DistributorComponent({navigation, route}) {
     }
 
     return `(+${added})`
+  }
+
+  const onManagersUpdate = async () => {
+    setIsLoading(true);
+
+    try {
+      const res = await API.post('/admin/distributors/managers', {distributorId: route.params.identifier, managers: info?.managers?.join(',')});
+
+      if (res.isError) throw 'error';
+
+      managersUpkeepActionsheetRef.current?.setModalVisible(false)
+      setManagersHasChanged(false)
+      setIsLoading(false)
+    } catch (e) {
+      console.log(e)
+      setIsLoading(false)
+    }
   }
 
   React.useEffect(() => {
@@ -746,6 +757,12 @@ export default function DistributorComponent({navigation, route}) {
               <Feather name="layout" size={24} color={stylesheet.Primary} />
               <Text style={{marginTop: 5, fontSize: 12, color: stylesheet.Primary}}>Layout</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {infoSheetRef.current?.setModalVisible(false); setTimeout(() => managersUpkeepActionsheetRef.current?.setModalVisible(true), 500)}}
+              underlayColor='#fff' style={[{marginLeft: 10, marginRight: 10}, styles.center]}>
+              <Feather name="users" size={24} color={stylesheet.Primary} />
+              <Text style={{marginTop: 5, fontSize: 12, color: stylesheet.Primary}}>Managers</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ActionSheet>
@@ -794,6 +811,64 @@ export default function DistributorComponent({navigation, route}) {
           {
             info?.herencia_displays && info?.herencia_visibility &&
             <TouchableOpacity onPress={onUpdateHerenciaUpkeep} style={[styles.roundedButton, styles.filled, {marginLeft: '7.5%', marginTop: 40}]}>
+              <Text style={styles.secondary}>Update</Text>
+            </TouchableOpacity>
+          }
+        </View>
+      </ActionSheet>
+      <ActionSheet containerStyle={{paddingBottom: 20, backgroundColor: stylesheet.Secondary}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} ref={managersUpkeepActionsheetRef}>
+        <View style={{padding: 20}}>
+          <Text style={[styles.baseText, styles.bold, styles.centerText, styles.marginWidth, styles.tertiary, {marginBottom: 5}]}>Edit Managers</Text>
+          <Text style={[styles.baseText, styles.centerText, styles.marginWidth, styles.tertiary, {marginBottom: 20}]}>Press 'Next' on keyboard to add manager</Text>
+
+          {
+            info?.managers?.map((manager, idx) => {
+              return (
+                <View style={[styles.defaultRowContainer, styles.marginWidth]}>
+                  <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>{manager}</Text>
+                  <View style={styles.spacer}></View>
+                  <TouchableOpacity
+                    onPress={() => setInfo(info => {
+                      info.managers.splice(idx, 1)
+                      setManagersHasChanged(true)
+
+                      return {
+                        ...info,
+                        managers: info.managers
+                      }
+                    })}
+                    underlayColor='#fff' style={[{marginLeft: 10, marginRight: 10}, styles.center]}>
+                    <Feather name="x" size={24} color={'red'} />
+                  </TouchableOpacity>
+                </View>
+              )
+            })
+          }
+
+          <TextInput
+            placeholderTextColor="#888"
+            style={[{marginTop: 10,  marginBottom: 30}, styles.baseInput]}
+            placeholder="Enter manager name..."
+            value={presetManager}
+            keyboardType={"default"}
+            returnKeyType="next"
+            onChangeText={(text) => setPresetManager(text)}
+            onSubmitEditing={() => {
+              setInfo(info => {
+                let updatedManagers = [...info.managers, presetManager]
+                setManagersHasChanged(true)
+                setPresetManager('')
+                return {
+                  ...info,
+                  managers: updatedManagers
+                }
+              })
+            }}
+          />
+
+          {
+            info?.managers?.length > 0 && presetManager == "" && managersHasChanged &&
+            <TouchableOpacity onPress={onManagersUpdate} style={[styles.roundedButton, styles.filled, {marginLeft: '7.5%', marginTop: 10, marginBottom: 20}]}>
               <Text style={styles.secondary}>Update</Text>
             </TouchableOpacity>
           }
