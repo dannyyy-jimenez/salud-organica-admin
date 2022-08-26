@@ -271,6 +271,7 @@ export default function InvoicesComponent({navigation, route}) {
 
   React.useEffect(() => {
     (async () => {
+      const { status } = await BarCodeScanner.requestPermissionsAsync();
       let { status } = await Location.requestForegroundPermissionsAsync();
 
       if (status !== 'granted') {

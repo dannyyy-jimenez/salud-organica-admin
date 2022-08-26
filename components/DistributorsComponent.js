@@ -196,7 +196,7 @@ export default function Distributors({navigation}) {
         return;
       }
 
-      Location.watchPositionAsync({}, (location) => {
+      Location.watchPositionAsync({distanceInterval: 50}, (location) => {
         if (search !== "") return;
         setLocation(location);
 
