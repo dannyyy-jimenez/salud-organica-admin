@@ -169,7 +169,7 @@ export default function DashboardComponent({navigation}) {
         <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={[styles.fullWidth, styles.justifyCenter, {marginTop: 40, marginBottom: 40, height: 'auto'}]}>
           {
             permissions.includes("STATS") &&
-            <View style={[styles.analyticCard, styles.elevated, {backgroundColor: '#20AF7E'}]}>
+            <View style={[styles.analyticCard, styles.elevated, {width: 170, backgroundColor: '#20AF7E'}]}>
               <Text style={[styles.subHeaderText, styles.bold, styles.secondary]}>YTD Website Sales</Text>
 
               <View style={[styles.fullWidth, styles.defaultColumnContainer]}>
@@ -184,7 +184,7 @@ export default function DashboardComponent({navigation}) {
           }
           {
             permissions.includes("STATS") &&
-            <View style={[styles.analyticCard, styles.elevated, {backgroundColor: '#40BA91'}]}>
+            <View style={[styles.analyticCard, styles.elevated, {width: 170, backgroundColor: '#40BA91'}]}>
               <Text style={[styles.subHeaderText, styles.bold, styles.secondary]}>YTD Physical Sales</Text>
 
               <View style={[styles.fullWidth, styles.defaultColumnContainer]}>
