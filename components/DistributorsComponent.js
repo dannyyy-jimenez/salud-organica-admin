@@ -321,7 +321,7 @@ export default function Distributors({navigation}) {
       return;
     }
     setDistributors(defaultDistributors.slice().filter(dist => dist.route.includes(routeLetter)))
-  }, [routeLetter])
+  }, [defaultDistributors, routeLetter])
 
   const ToggleRouteMode = () => {
     if (routeMode.active) {
@@ -422,7 +422,7 @@ export default function Distributors({navigation}) {
           routeMode.active && routeMode.current < routeMode.total &&
           <View style={[styles.defaultTabScrollContent, {alignItems: 'flex-start', justifyContent: 'flex-start', width: '90%', marginLeft: '5%', paddingBottom: 70}]}>
             {
-              <TouchableOpacity key={distributors[routeMode.current].identifier} onPress={() => navigation.navigate('DistributorView', {identifier: distributors[routeMode.current], company: distributors[routeMode.current]})} style={[styles.fullStoreCard, styles.elevated]}>
+              <TouchableOpacity key={distributors[routeMode.current].identifier} onPress={() => navigation.navigate('DistributorView', {identifier: distributors[routeMode.current].identifier, company: distributors[routeMode.current].company})} style={[styles.fullStoreCard, styles.elevated]}>
                 <View style={[styles.defaultColumnContainer, styles.fullWidth, styles.fullSCContent, {borderBottomRightRadius: 0, borderBottomLeftRadius: 0, backgroundColor: "#FCFCFC"}]}>
                   <Text style={[styles.tinyText, styles.bold, {opacity: 0.5}, styles.center]}>{distributors[routeMode.current].address}</Text>
                   <Text numberOfLines={1} style={[styles.subHeaderText, styles.nunitoText, styles.tertiary, {marginTop: 20, marginBottom: 20}]}>{distributors[routeMode.current].company}</Text>
