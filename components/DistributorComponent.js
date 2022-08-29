@@ -170,7 +170,7 @@ export default function DistributorComponent({navigation, route}) {
 
       if (res.isError) throw 'error';
 
-      actionSheetRef.current?.setModalVisible(false)
+      herenciaUpkeepSheetRef.current?.setModalVisible(false)
       setAlcohol(0)
       setCreams(0)
       setRollons(0)
