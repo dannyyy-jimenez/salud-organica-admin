@@ -281,8 +281,6 @@ export default function InvoicesComponent({navigation, route}) {
 
       Location.watchPositionAsync({}, (location) => {
         setLocation(location);
-
-        load(location, false)
       });
     })();
 
@@ -365,7 +363,6 @@ export default function InvoicesComponent({navigation, route}) {
   }
 
   const FormatIdentifier = (identifier) => {
-
     if (identifier == 'topical_cream') return 'cream'
 
     return identifier;
@@ -498,24 +495,8 @@ export default function InvoicesComponent({navigation, route}) {
 
     try {
 
-      let herencia_rollon = 0;
-      let herencia_rubbing =  0;
-      let herencia_cream = 0;
-
-      invoice.line.forEach((line, i) => {
-        if (line.product.identifier === 'rubbing') {
-          herencia_rubbing += line.quantity
-        } else if (line.product.identifier === 'cream') {
-          herencia_cream += line.quantity
-        } else if (line.product.identifier === 'rollon') {
-          herencia_rollon += line.quantity
-        }
-      });
-
-      if (herencia_rollon > 0 || herencia_rubbing > 0 || herencia_cream > 0) {
-        const res = await API.post('/admin/inventory', {editMode: false, editID: null, identifier: invoice.distributor.identifier, invoiceId: invoice.identifier, line: 'herencia', isDelivery: true, herencia_rubbing: herencia_rubbing, herencia_cream: herencia_cream, herencia_rollon: herencia_rollon, sourappleGummies: 0, tropicalGummies: 0, berriesGummies: 0, sourdieselFlower: 0, sourdieselJoints: 0, oilDefault: 0, spacecandyJoints: 0, spacecandyFlower: 0, godfatherFlower: 0, godfatherJoints: 0, note: 'invoice marked as delivered'});
-        if (res.isError) throw 'error';
-      }
+      const res = await API.post('/admin/invoice/actions/topup', {identifier: invoice.distributor.identifier, invoiceId: invoice.identifier});
+      if (res.isError) throw 'error';
 
       setTopUps([topups, ...invoice.identifier])
       setIsLoading(false);

@@ -9,6 +9,7 @@ import haversine from 'haversine-distance'
 import {Picker} from '@react-native-picker/picker';
 import Checkbox from 'expo-checkbox';
 import openMap from 'react-native-open-maps';
+import { FormatSerieName } from './Globals'
 
 let stylesheet = require('../Styles')
 let styles = stylesheet.Styles;
@@ -62,6 +63,7 @@ export default function Distributors({navigation}) {
   const [search, setSearch] = React.useState("")
   const [needAttention, setNeedAttention] = React.useState([])
   const [routeLetters, setRouteLetters] = React.useState([])
+  const [availableLines, setAvailableLines] = React.useState([])
 
   const [routeMode, setRouteMode] = React.useState({
     active: false,
@@ -143,6 +145,7 @@ export default function Distributors({navigation}) {
         dists = dists.slice().filter(dist => dist.route.includes(routeLetter))
       }
 
+      setAvailableLines(res.data.series)
       setPermissions(res.data._permissions)
       setDistributors(dists)
       setIsLoading(false)
@@ -775,23 +778,29 @@ export default function Distributors({navigation}) {
             {
               newSection === 2 &&
               <View style={{paddingBottom: 40}}>
-                <View style={[styles.defaultRowContainer, {marginBottom: 20}]}>
-                  <Checkbox
-                    style={styles.checkbox}
-                    value={lines.includes('herencia')}
-                    onValueChange={() => {
-                      if (lines.includes('herencia')) {
-                        let c = lines.slice()
-                        c.splice(lines.indexOf('herencia'), 1)
-                        setLines(c)
-                      } else {
-                        setLines([...lines, 'herencia'])
-                      }
-                    }}
-                    color={lines.includes('herencia') ? stylesheet.Primary : undefined}
-                  />
-                  <Text style={[styles.baseText, styles.bold, styles.tertiary, {marginLeft: 10}]}>Herencia del Abuelo</Text>
-                </View>
+                {
+                  availableLines.map(line => {
+                    return (
+                      <View style={[styles.defaultRowContainer, {marginBottom: 20}]}>
+                        <Checkbox
+                          style={styles.checkbox}
+                          value={lines.includes(line)}
+                          onValueChange={() => {
+                            if (lines.includes(line)) {
+                              let c = lines.slice()
+                              c.splice(lines.indexOf(line), 1)
+                              setLines(c)
+                            } else {
+                              setLines([...lines, line])
+                            }
+                          }}
+                          color={lines.includes(line) ? stylesheet.Primary : undefined}
+                        />
+                        <Text style={[styles.baseText, styles.bold, styles.tertiary, {marginLeft: 10}]}>{FormatSerieName(line)}</Text>
+                      </View>
+                    )
+                  })
+                }
               </View>
             }
             {

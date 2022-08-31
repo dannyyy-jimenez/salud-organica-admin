@@ -11,6 +11,7 @@ import {
   ContributionGraph,
   StackedBarChart
 } from "react-native-chart-kit";
+import { FormatProductName } from './Globals'
 
 import API from '../Api'
 
@@ -19,7 +20,7 @@ let styles = stylesheet.Styles;
 
 export default function DistributorDepthComponent({navigation, route}) {
   const [inventory, setInventory] = React.useState([])
-  const [line, setLine] = React.useState('herencia')
+  const [line, setLine] = React.useState(route.params.line)
   const animationRef = React.useRef(null)
   const fulfilledRef = React.useRef(null)
   const [isLoading, setIsLoading] = React.useState(true)
@@ -31,6 +32,7 @@ export default function DistributorDepthComponent({navigation, route}) {
 
   const [groupedInventory, setGroupedInventory] = React.useState([])
   const [deliveries, setDeliveries] = React.useState(null)
+  const [lineProducts, setLineProducts] = React.useState([])
 
   const [info, setInfo] = React.useState({})
 
@@ -48,9 +50,10 @@ export default function DistributorDepthComponent({navigation, route}) {
       setNotes(null)
       setInfo(res.data._info)
       setIsLoading(false)
+      setLineProducts(res.data._line_products)
 
       if (res.data._i.length > 6) {
-        GroupInventory(res.data._i)
+        GroupInventory(res.data._i, res.data._line_products)
       }
 
       AnalyzeDeliveries(res.data._i)
@@ -97,7 +100,7 @@ export default function DistributorDepthComponent({navigation, route}) {
     })
   }
 
-  const GroupInventory = (inven) => {
+  const GroupInventory = (inven, products) => {
     let uniqueGrouper = []
     let grouped = []
 
@@ -107,13 +110,17 @@ export default function DistributorDepthComponent({navigation, route}) {
 
         let filteredInven = inven.filter(inv => inv.date.split('/')[0] == i.date.split('/')[0]);
 
-        grouped.push({
+        let obj = {
           date: i.date.split('/')[0],
-          herencia_cream: filteredInven.reduce((total, next) => total + next.herencia_cream, 0),
-          herencia_rollon: filteredInven.reduce((total, next) => total + next.herencia_rollon, 0),
-          herencia_rubbing: filteredInven.reduce((total, next) => total + next.herencia_rubbing, 0),
-          totalCount: filteredInven.reduce((total, next) => total + next.totalCount, 0),
-        })
+          totalCount: filteredInven.reduce((total, next) => total + next.totalCount, 0)
+        }
+
+        products.forEach((product, i) => {
+          let key = line + "_" + product
+          obj[key] = filteredInven.reduce((total, next) => total + next[key], 0)
+        });
+
+        grouped.push(obj)
       }
     }
 
@@ -260,29 +267,16 @@ export default function DistributorDepthComponent({navigation, route}) {
 
               <Text style={[styles.baseText, styles.marginWidth, styles.primary, styles.bold, {marginTop: 15, marginBottom: 15}]}>Distribution of Most Recent Inventory</Text>
               <PieChart
-                data={[
-                  {
-                    name: "Alcohol",
-                    quantity: inventory[0].herencia_rubbing,
-                    color: `rgba(0, 163, 108, ${inventory[0].herencia_rubbing / inventory[0].totalCount})`,
-                    legendFontColor: "#7F7F7F",
-                    legendFontSize: 15
-                  },
-                  {
-                    name: "Creams",
-                    quantity: inventory[0].herencia_cream,
-                    color: `rgba(0, 163, 108, ${inventory[0].herencia_cream / inventory[0].totalCount})`,
-                    legendFontColor: "#7F7F7F",
-                    legendFontSize: 15
-                  },
-                  {
-                    name: "Rollons",
-                    quantity: inventory[0].herencia_rollon,
-                    color: `rgba(0, 163, 108, ${inventory[0].herencia_rollon / inventory[0].totalCount})`,
-                    legendFontColor: "#7F7F7F",
-                    legendFontSize: 15
-                  }
-                ]}
+                data={progressLog.labels.map(label => {
+                  let key = line + "_" + label
+                    return {
+                      name: FormatProductName(key),
+                      quantity: inventory[0][key],
+                      color: `rgba(0, 163, 108, ${inventory[0][key] / inventory[0].totalCount})`,
+                      legendFontColor: "#7F7F7F",
+                      legendFontSize: 15
+                    }
+                  })}
                 width={Dimensions.get("window").width * 0.98} // from react-native
                 height={220}
                 chartConfig={{
@@ -335,116 +329,52 @@ export default function DistributorDepthComponent({navigation, route}) {
                 }}
               />
 
-              <Text style={[styles.baseText, styles.marginWidth, styles.bold, {marginTop: 15, marginBottom: 15, color: 'orange'}]}>Alcohol</Text>
-              <LineChart
-                data={{
-                  labels: groupedInventory.length > 0 ? groupedInventory.map(lin => lin.date).reverse() : inventory.map(lin => lin.date).reverse(),
-                  datasets: [
-                    {
-                      data: groupedInventory.length > 0 ? groupedInventory.map(lin => lin.herencia_rubbing).reverse() : inventory.map(lin => lin.herencia_rubbing).reverse(),
-                      color: () => 'orange'
-                    }
-                  ]
-                }}
-                width={Dimensions.get("window").width * 0.98} // from react-native
-                height={220}
-                yAxisLabel=""
-                yAxisSuffix=""
-                yAxisInterval={1} // optional, defaults to 1
-                withShadow={false}
-                withInnerLines={false}
-                withOuterLines={true}
-                withVerticalLines={true}
-                withHorizontalLines={true}
-                chartConfig={{
-                  backgroundGradientFrom: "#fff",
-                  backgroundGradientTo: "#fff",
-                  decimalPlaces: 0, // optional, defaults to 2dp
-                  color: (opacity = 1) => `rgba(33, 33, 33, ${opacity})`,
-                  labelColor: (opacity = 1) => `rgba(33, 33, 33, ${opacity})`
-                }}
-                bezier
-                style={{
-                  padding: 0,
-                  margin: 0,
-                  marginTop: 2,
-                  left: -20
-                }}
-              />
+              {
+                lineProducts.map(product => {
+                  let key = line + "_" + product
 
-              <Text style={[styles.baseText, styles.marginWidth, styles.bold, {marginTop: 15, marginBottom: 15, color: 'purple'}]}>Creams</Text>
-              <LineChart
-                data={{
-                  labels: groupedInventory.length > 0 ? groupedInventory.map(lin => lin.date).reverse() : inventory.map(lin => lin.date).reverse(),
-                  datasets: [
-                    {
-                      data: groupedInventory.length > 0 ? groupedInventory.map(lin => lin.herencia_cream).reverse() : inventory.map(lin => lin.herencia_cream).reverse(),
-                      color: () => 'purple'
-                    }
-                  ]
-                }}
-                width={Dimensions.get("window").width * 0.98} // from react-native
-                height={220}
-                yAxisLabel=""
-                yAxisSuffix=""
-                yAxisInterval={1} // optional, defaults to 1
-                withShadow={false}
-                withInnerLines={false}
-                withOuterLines={true}
-                withVerticalLines={true}
-                withHorizontalLines={true}
-                chartConfig={{
-                  backgroundGradientFrom: "#fff",
-                  backgroundGradientTo: "#fff",
-                  decimalPlaces: 0, // optional, defaults to 2dp
-                  color: (opacity = 1) => `rgba(33, 33, 33, ${opacity})`,
-                  labelColor: (opacity = 1) => `rgba(33, 33, 33, ${opacity})`
-                }}
-                bezier
-                style={{
-                  padding: 0,
-                  margin: 0,
-                  marginTop: 2,
-                  left: -20
-                }}
-              />
-
-              <Text style={[styles.baseText, styles.marginWidth, styles.bold, {marginTop: 15, marginBottom: 15, color: 'brown'}]}>Rollons</Text>
-              <LineChart
-                data={{
-                  labels: groupedInventory.length > 0 ? groupedInventory.map(lin => lin.date).reverse() : inventory.map(lin => lin.date).reverse(),
-                  datasets: [
-                    {
-                      data: groupedInventory.length > 0 ? groupedInventory.map(lin => lin.herencia_rollon).reverse() : inventory.map(lin => lin.herencia_rollon).reverse(),
-                      color: () => 'brown'
-                    }
-                  ]
-                }}
-                width={Dimensions.get("window").width * 0.98} // from react-native
-                height={220}
-                yAxisLabel=""
-                yAxisSuffix=""
-                yAxisInterval={1} // optional, defaults to 1
-                withShadow={false}
-                withInnerLines={false}
-                withOuterLines={true}
-                withVerticalLines={true}
-                withHorizontalLines={true}
-                chartConfig={{
-                  backgroundGradientFrom: "#fff",
-                  backgroundGradientTo: "#fff",
-                  decimalPlaces: 0, // optional, defaults to 2dp
-                  color: (opacity = 1) => `rgba(33, 33, 33, ${opacity})`,
-                  labelColor: (opacity = 1) => `rgba(33, 33, 33, ${opacity})`
-                }}
-                bezier
-                style={{
-                  padding: 0,
-                  margin: 0,
-                  marginTop: 2,
-                  left: -20
-                }}
-              />
+                  return (
+                    <>
+                      <Text style={[styles.baseText, styles.marginWidth, styles.bold, {marginTop: 15, marginBottom: 15, color: 'orange'}]}>{FormatProductName(key)}</Text>
+                      <LineChart
+                        data={{
+                          labels: groupedInventory.length > 0 ? groupedInventory.map(lin => lin.date).reverse() : inventory.map(lin => lin.date).reverse(),
+                          datasets: [
+                            {
+                              data: groupedInventory.length > 0 ? groupedInventory.map(lin => lin[key]).reverse() : inventory.map(lin => lin[key]).reverse(),
+                              color: () => 'orange'
+                            }
+                          ]
+                        }}
+                        width={Dimensions.get("window").width * 0.98} // from react-native
+                        height={220}
+                        yAxisLabel=""
+                        yAxisSuffix=""
+                        yAxisInterval={1} // optional, defaults to 1
+                        withShadow={false}
+                        withInnerLines={false}
+                        withOuterLines={true}
+                        withVerticalLines={true}
+                        withHorizontalLines={true}
+                        chartConfig={{
+                          backgroundGradientFrom: "#fff",
+                          backgroundGradientTo: "#fff",
+                          decimalPlaces: 0, // optional, defaults to 2dp
+                          color: (opacity = 1) => `rgba(33, 33, 33, ${opacity})`,
+                          labelColor: (opacity = 1) => `rgba(33, 33, 33, ${opacity})`
+                        }}
+                        bezier
+                        style={{
+                          padding: 0,
+                          margin: 0,
+                          marginTop: 2,
+                          left: -20
+                        }}
+                      />
+                    </>
+                  )
+                })
+              }
             </View>
           </>
         }

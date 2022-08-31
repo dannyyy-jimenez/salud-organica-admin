@@ -11,6 +11,7 @@ import {
   ContributionGraph,
   StackedBarChart
 } from "react-native-chart-kit";
+import { FormatProductName, FormatSerieName } from './Globals'
 
 import API from '../Api'
 import moment from 'moment'
@@ -20,7 +21,7 @@ let styles = stylesheet.Styles;
 
 const actionSheetRef = React.createRef();
 const infoSheetRef = React.createRef();
-const herenciaUpkeepSheetRef = React.createRef();
+const layoutSheetRef = React.createRef();
 const managersUpkeepActionsheetRef = React.createRef();
 
 export default function DistributorComponent({navigation, route}) {
@@ -36,6 +37,7 @@ export default function DistributorComponent({navigation, route}) {
   const [editMode, setEditMode] = React.useState(false)
   const [editID, setEditID] = React.useState(null)
   const [projections, setProjections] = React.useState(null)
+  const [lineProducts, setLineProducts] = React.useState([])
 
   const [info, setInfo] = React.useState({})
 
@@ -49,22 +51,7 @@ export default function DistributorComponent({navigation, route}) {
 
   // product inventories
 
-  const [alcohol, setAlcohol] = React.useState(0)
-  const [creams, setCreams] = React.useState(0)
-  const [rollons, setRollons] = React.useState(0)
-
-  // edgybear
-
-  const [tropicalGummies, setTropicalGummies] = React.useState(0)
-  const [sourappleGummies, setSourappleGummies] = React.useState(0)
-  const [berriesGummies, setBerriesGummies] = React.useState(0)
-  const [godfatherJoints, setGodfatherJoints] = React.useState(0)
-  const [sourdieselJoints, setSourdieselJoints] = React.useState(0)
-  const [spacecandyJoints, setSpacecandyJoints] = React.useState(0)
-  const [godfatherFlower, setGodfatherFlower] = React.useState(0)
-  const [sourdieselFlower, setSourdieselFlower] = React.useState(0)
-  const [spacecandyFlower, setSpacecandyFlower] = React.useState(0)
-  const [oilDefault, setOilDefault] = React.useState(0)
+  const [inventories, setInventories] = React.useState({})
 
   const load = async (checkThreshold = false) => {
     setIsLoading(true)
@@ -80,52 +67,18 @@ export default function DistributorComponent({navigation, route}) {
       setLine(res.data._line)
       setProgressLog(res.data._progressLog)
       setNotes(null)
+      setLineProducts(res.data._line_products)
       setInfo(res.data._info)
       setIsLoading(false)
       setProjections(res.data._projections)
 
+      setInventories(res.data._line_products.reduce((o, key) => ({ ...o, [`${res.data._line}_${key}`]: 0}), {}))
+
       if (res.data._info.dist_lanes === 0) {
-        herenciaUpkeepSheetRef.current?.setModalVisible(true)
+        layoutSheetRef.current?.setModalVisible(true)
       }
 
-      if (line === 'herencia' && !isDelivery) {
-        let maxes = {
-          alcohols: info?.herencia_displays * 8,
-          creams: info?.herencia_displays * 8
-        }
-
-        if (inventory[0].herencia_rubbing < maxes.alcohols * 0.9 && inventory[0].herencia_cream < maxes.creams * 0.9) {
-          Alert.alert(
-            'Product Amount Low',
-            `Talk to ${info.managers.join(' or  ')} about re-uping on product`,
-            [],
-            {
-              cancelable: true,
-              onDismiss: () => {}
-            }
-          );
-        } else if (inventory[0].herencia_cream < maxes.creams * 0.9) {
-          Alert.alert(
-            'Alcohol Amount Low',
-            `Talk to ${info.managers.join(' or  ')} about re-uping on alcohol`,
-            [],
-            {
-              cancelable: true,
-              onDismiss: () => {}
-            }
-          );
-        } else if (inventory[0].herencia_rubbing < maxes.alcohols * 0.9) {
-          Alert.alert(
-            'Cream Amount Low',
-            `Talk to ${info.managers.join(' or  ')} about re-uping on creams`,
-            [],
-            {
-              cancelable: true,
-              onDismiss: () => {}
-            }
-          );
-        }
-      }
+      // TODO:  needs treshold
     } catch (e) {
       console.log(e)
       setIsLoading(false)
@@ -143,14 +96,13 @@ export default function DistributorComponent({navigation, route}) {
     setIsLoading(true);
 
     try {
-      const res = await API.post('/admin/inventory', {editMode: editMode, editID: editID, identifier: route.params.identifier, line, isDelivery, herencia_rubbing: alcohol, herencia_cream: creams, herencia_rollon: rollons, sourappleGummies, tropicalGummies, berriesGummies, sourdieselFlower, sourdieselJoints, oilDefault, spacecandyJoints, spacecandyFlower, godfatherFlower, godfatherJoints, note: notes});
+      const res = await API.post('/admin/inventory', {editMode: editMode, editID: editID, identifier: route.params.identifier, line, isDelivery, ...inventories, note: notes});
 
       if (res.isError) throw 'error';
 
       actionSheetRef.current?.setModalVisible(false)
-      setAlcohol(0)
-      setCreams(0)
-      setRollons(0)
+
+      setInventories(lineProducts.reduce((o, key) => ({ ...o, [`${line}_${key}`]: 0}), {}))
       setNotes(null)
       setEditID(null)
       setEditMode(false)
@@ -162,18 +114,17 @@ export default function DistributorComponent({navigation, route}) {
     }
   }
 
-  const onUpdateHerenciaUpkeep = async () => {
+  const onUpdateLayout = async () => {
     setIsLoading(true);
 
     try {
-      const res = await API.post('/admin/distributors/herencia', {distributorId: route.params.identifier, herencia_displays: info?.herencia_displays, herencia_visibility: info?.herencia_visibility, dist_lanes: info?.dist_lanes});
+      const res = await API.post('/admin/distributors/layout', {line: line, distributorId: route.params.identifier, ...info});
 
       if (res.isError) throw 'error';
 
-      herenciaUpkeepSheetRef.current?.setModalVisible(false)
-      setAlcohol(0)
-      setCreams(0)
-      setRollons(0)
+      keepSheetRef.current?.setModalVisible(false)
+      setInventories(res.data._line_products.reduce((o, key) => ({ ...o, [`${line}_${key}`]: 0}), {}))
+
       setNotes(null)
       setEditID(null)
       setEditMode(false)
@@ -188,20 +139,21 @@ export default function DistributorComponent({navigation, route}) {
   const onEdit = (lin) => {
     setEditID(lin.id)
     setEditMode(true)
-    if (line === 'herencia') {
-      setNotes(lin.note)
-      setRollons(lin.herencia_rollon)
-      setAlcohol(lin.herencia_rubbing)
-      setCreams(lin.herencia_cream)
-    }
+    setNotes(lin.note)
+    setInventories(prevState => {
+      let log = {}
+      lineProducts.forEach((product, i) => {
+        let key = line + "_" + product
+        log[key] = lin[key]
+      });
+
+      return {
+        ...prevState,
+        ...log
+      }
+    })
+
     actionSheetRef.current?.setModalVisible(true)
-  }
-
-  const FormatLine = (l) => {
-    if (l === 'herencia') return "La Herencia del Abuelo"
-    if (l === 'edgybear') return "La Herencia del Abuelo"
-
-    return l
   }
 
   const FormatRouteNumber = (l) => {
@@ -275,6 +227,30 @@ export default function DistributorComponent({navigation, route}) {
     }
 
     return `(+${added})`
+  }
+
+  const UpdateInventories = (key, minus = false) => {
+    setInventories(prevState => {
+      let newState = {...prevState}
+
+      if (minus) {
+        newState[key] = prevState[key] == 0 ? 0 : prevState[key] - 1
+      } else {
+        newState[key] = prevState[key] + 1
+      }
+
+      return newState
+    })
+  }
+
+  const UpdateInfo = (key_suffix, value) => {
+    setInfo(prevState => {
+      let newState = {...prevState}
+
+      newState[`${line}_${key_suffix}`] = value
+
+      return  newState
+    })
   }
 
   const onManagersUpdate = async () => {
@@ -354,7 +330,7 @@ export default function DistributorComponent({navigation, route}) {
             </View>
 
             <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>Timelapse of Inventory</Text>
-            <LineChart
+            {/* <LineChart
               data={{
                 labels: projections ? [...inventory.map(lin => lin.date).reverse().slice(-4), moment(projections[14].date).format("MM/DD")] : inventory.map(lin => lin.date).reverse().slice(-5),
                 datasets: [
@@ -403,7 +379,7 @@ export default function DistributorComponent({navigation, route}) {
                 marginTop: 40,
                 left: -20
               }}
-            />
+            /> */}
 
             {
               progressLog && ((inventory.length > 0 && inventory[1].totalCount - inventory[0].totalCount >= 0) || rangeBegin) &&
@@ -418,7 +394,7 @@ export default function DistributorComponent({navigation, route}) {
                 }
                 <ProgressChart
                   data={{
-                    labels: progressLog.labels, // optional
+                    labels: progressLog.labels.map(label => FormatProductName(line + "_" + label)), // optional
                     data: progressLog.data
                   }}
                   width={Dimensions.get("window").width * 0.98}
@@ -438,52 +414,17 @@ export default function DistributorComponent({navigation, route}) {
                 />
 
                 {
-                  line === "herencia" &&
-                  <>
-                    <View style={[styles.statCardM]}>
-                      <Text style={[styles.subHeaderText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary]}>{progressLog.changes[0]}</Text>
-                      <View style={styles.spacer}></View>
-                      <Text style={[styles.baseText, styles.fullWidth, styles.centerText, styles.tertiary]}>Alcohol(s)</Text>
-                      <View style={styles.spacer}></View>
-                    </View>
-                    <View style={[styles.statCardM]}>
-                      <Text style={[styles.subHeaderText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary]}>{progressLog.changes[1]}</Text>
-                      <View style={styles.spacer}></View>
-                      <Text style={[styles.baseText, styles.fullWidth, styles.centerText, styles.tertiary]}>Rollon(s)</Text>
-                      <View style={styles.spacer}></View>
-                    </View>
-                    <View style={[styles.statCardM]}>
-                      <Text style={[styles.subHeaderText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary]}>{progressLog.changes[2]}</Text>
-                      <View style={styles.spacer}></View>
-                      <Text style={[styles.baseText, styles.fullWidth, styles.centerText, styles.tertiary]}>Cream(s)</Text>
-                      <View style={styles.spacer}></View>
-                    </View>
-                  </>
+                  progressLog.labels.map(label => {
+                    return (
+                      <View style={[styles.statCardM, {flex: 1}]}>
+                        <Text style={[styles.subHeaderText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary]}>{progressLog.changes[progressLog.labels.indexOf(label)]}</Text>
+                        <View style={styles.spacer}></View>
+                        <Text style={[styles.baseText, styles.fullWidth, styles.centerText, styles.tertiary]}>{FormatProductName(line+"_"+label)}(s)</Text>
+                        <View style={styles.spacer}></View>
+                      </View>
+                    )
+                  })
                 }
-                {
-                  line === "edgybear" &&
-                  <>
-                    <View style={[styles.statCardM]}>
-                      <Text style={[styles.subHeaderText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary]}>{progressLog.changes[0]}</Text>
-                      <View style={styles.spacer}></View>
-                      <Text style={[styles.baseText, styles.fullWidth, styles.centerText, styles.tertiary]}>Gummies</Text>
-                      <View style={styles.spacer}></View>
-                    </View>
-                    <View style={[styles.statCardM]}>
-                      <Text style={[styles.subHeaderText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary]}>{progressLog.changes[1]}</Text>
-                      <View style={styles.spacer}></View>
-                      <Text style={[styles.baseText, styles.fullWidth, styles.centerText, styles.tertiary]}>Joints</Text>
-                      <View style={styles.spacer}></View>
-                    </View>
-                    <View style={[styles.statCardM]}>
-                      <Text style={[styles.subHeaderText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary]}>{progressLog.changes[2]}</Text>
-                      <View style={styles.spacer}></View>
-                      <Text style={[styles.baseText, styles.fullWidth, styles.centerText, styles.tertiary]}>Flower</Text>
-                      <View style={styles.spacer}></View>
-                    </View>
-                  </>
-                }
-
                 {
                   rangeBegin !== null && rangeEnd !== null &&
                   <View style={[styles.statCardM, {width: '98%'}]}>
@@ -508,56 +449,26 @@ export default function DistributorComponent({navigation, route}) {
             <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 55}]}>Most Recent Logs</Text>
             {
               inventory.slice(0, 5).map((lin, idx) => {
-                if (lin.line === 'herencia') {
-                  return (
-                    <TouchableOpacity style={[styles.statCard, {width: '98%'}]} onPress={() => onEdit(lin)}>
-                      <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary]}>{lin.date} {lin.isDelivery ? "(Delivery)" : ""}</Text>
-                      <View style={[styles.baseText, styles.fullWidth, styles.tertiary, styles.center, styles.defaultRowContainer, {marginTop: 10}]}>
-                        <Text>Alcohols: {lin.herencia_rubbing}</Text>
-                        <View style={styles.spacer}></View>
-                        <Text style={[styles.primary, styles.bold]}>{lin.isDelivery ? CalculateDelivered('herencia_rubbing', lin, idx) : ''}</Text>
-                      </View>
-                      <View style={[styles.baseText, styles.fullWidth, styles.tertiary, styles.center, styles.defaultRowContainer, {marginTop: 10}]}>
-                        <Text>Rollons: {lin.herencia_rollon}</Text>
-                        <View style={styles.spacer}></View>
-                        <Text style={[styles.primary, styles.bold]}>{lin.isDelivery ? CalculateDelivered('herencia_rollon', lin, idx) : ''}</Text>
-                      </View>
-                      <View style={[styles.baseText, styles.fullWidth, styles.tertiary, styles.center, styles.defaultRowContainer, {marginTop: 10}]}>
-                        <Text>Creams: {lin.herencia_cream}</Text>
-                        <View style={styles.spacer}></View>
-                        <Text style={[styles.primary, styles.bold]}>{lin.isDelivery ? CalculateDelivered('herencia_cream', lin, idx) : ''}</Text>
-                      </View>
-                      {
-                        typeof lin.note === "string" && lin.note !== ""  &&
-                        <Text style={[styles.baseText, styles.fullWidth, styles.bold, styles.tertiary, {marginTop: 10}]}>{lin.note}</Text>
-                      }
-                    </TouchableOpacity>
-                  )
-                }
-
-                if (lin.line === 'edgybear') {
-                  return (
-                    <View style={[styles.statCard, {width: '98%'}]}>
-                      <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary]}>{lin.date} {lin.isDelivery ? "(Delivery)" : ""}</Text>
-                      <Text style={[styles.baseText, styles.fullWidth, styles.tertiary, {marginTop: 10}]}>Sour Apple Gummies: {lin.edgybear_sour_apple}</Text>
-                      <Text style={[styles.baseText, styles.fullWidth, styles.tertiary, {marginTop: 10}]}>Berries Gummies: {lin.edgybear_berries}</Text>
-                      <Text style={[styles.baseText, styles.fullWidth, styles.tertiary, {marginTop: 10}]}>Tropical Gummies: {lin.edgybear_tropical}</Text>
-                      <Text style={[styles.baseText, styles.fullWidth, styles.tertiary, {marginTop: 10}]}>Godfather Joints: {lin.edgybear_godfather}</Text>
-                      <Text style={[styles.baseText, styles.fullWidth, styles.tertiary, {marginTop: 10}]}>Sour Diesel Joints: {lin.edgybear_sour_diesel}</Text>
-                      <Text style={[styles.baseText, styles.fullWidth, styles.tertiary, {marginTop: 10}]}>Space Candy Joints: {lin.edgybear_space_candy}</Text>
-                      <Text style={[styles.baseText, styles.fullWidth, styles.tertiary, {marginTop: 10}]}>Sour Diesel Flower: {lin.edgybear_sour_diesel_flower}</Text>
-                      <Text style={[styles.baseText, styles.fullWidth, styles.tertiary, {marginTop: 10}]}>Godfather Flower: {lin.edgybear_godfather_flower}</Text>
-                      <Text style={[styles.baseText, styles.fullWidth, styles.tertiary, {marginTop: 10}]}>Space Candy Flower: {lin.edgybear_space_candy_flower}</Text>
-                      <Text style={[styles.baseText, styles.fullWidth, styles.tertiary, {marginTop: 10}]}>Default Oil: {lin.edgybear_oil}</Text>
-                      {
-                        typeof lin.note === "string" && lin.note !== ""  &&
-                        <Text style={[styles.baseText, styles.fullWidth, styles.bold, styles.tertiary, {marginTop: 10}]}>{lin.note}</Text>
-                      }
-                    </View>
-                  )
-                }
                 return (
-                  <></>
+                  <TouchableOpacity style={[styles.statCard, {width: '98%'}]} onPress={() => onEdit(lin)}>
+                    <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary]}>{lin.date} {lin.isDelivery ? "(Delivery)" : ""}</Text>
+                    {
+                      lineProducts.map(identifier => {
+                        let key = `${line}_${identifier}`
+                        return (
+                          <View style={[styles.baseText, styles.fullWidth, styles.tertiary, styles.center, styles.defaultRowContainer, {marginTop: 10}]}>
+                            <Text>{FormatProductName(key)}s: {lin[key]}</Text>
+                            <View style={styles.spacer}></View>
+                            <Text style={[styles.primary, styles.bold]}>{lin.isDelivery ? CalculateDelivered(key, lin, idx) : ''}</Text>
+                          </View>
+                        )
+                      })
+                    }
+                    {
+                      typeof lin.note === "string" && lin.note !== ""  &&
+                      <Text style={[styles.baseText, styles.fullWidth, styles.bold, styles.tertiary, {marginTop: 10}]}>{lin.note}</Text>
+                    }
+                  </TouchableOpacity>
                 )
               })
             }
@@ -571,160 +482,50 @@ export default function DistributorComponent({navigation, route}) {
 
       <ActionSheet containerStyle={{paddingBottom: 20, backgroundColor: stylesheet.Secondary}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} ref={actionSheetRef}>
         <View style={{marginBottom: 30}}>
-          {
-            line === 'herencia' &&
-            <View style={[styles.defaultColumnContainer, styles.fullWidth]}>
-              <Text style={[styles.baseText, styles.bold, styles.marginWidth, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>Notes</Text>
-              <TextInput
-                placeholderTextColor="#888"
-                multiline={true}
-                style={[{marginTop: 5,  marginBottom: 20}, styles.baseInput]}
-                placeholder="Enter notes here"
-                numberOfLines={1}
-                value={notes}
-                onChangeText={(text) => setNotes(text)}
-              />
-              <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>Tap Box to Add Product Count</Text>
-              <View style={[styles.defaultInventoryCardAddon, styles.defaultRowContainer, styles.center]}>
-                <TouchableOpacity onPress={() => alcohol !== 0 ? setAlcohol(alcohol - 1) : setAlcohol(0)} style={[styles.defaultRowContainer, styles.center, {backgroundColor: 'red', marginLeft: 10, width: 30, height: 30, borderRadius: 15}]}>
-                  <Text style={[styles.secondary, {fontSize: 20}]}>-</Text>
-                </TouchableOpacity>
-                <View style={[styles.defaultColumnContainer, styles.spacer, styles.center]}>
-                  <Text style={[styles.headerText, styles.primary, styles.bold, styles.center]}>{alcohol}</Text>
-                  <Text style={[styles.baseText, styles.primary, styles.bold, styles.center]}>Alcohols</Text>
-                </View>
-                <TouchableOpacity onPress={() => setAlcohol(alcohol + 1)} style={[styles.defaultRowContainer, styles.center, {backgroundColor: 'green', marginRight: 10, width: 30, height: 30, borderRadius: 15}]}>
-                  <Text style={[styles.secondary, {fontSize: 20}]}>+</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={[styles.defaultInventoryCardAddon, styles.defaultRowContainer, styles.center]}>
-                <TouchableOpacity onPress={() => creams !== 0 ? setCreams(creams - 1) : setCreams(0)} style={[styles.defaultRowContainer, styles.center, {backgroundColor: 'red', marginLeft: 10, width: 30, height: 30, borderRadius: 15}]}>
-                  <Text style={[styles.secondary, {fontSize: 20}]}>-</Text>
-                </TouchableOpacity>
-                <View style={[styles.defaultColumnContainer, styles.spacer, styles.center]}>
-                  <Text style={[styles.headerText, styles.primary, styles.bold, styles.center]}>{creams}</Text>
-                  <Text style={[styles.baseText, styles.primary, styles.bold, styles.center]}>Creams</Text>
-                </View>
-                <TouchableOpacity onPress={() => setCreams(creams + 1)} style={[styles.defaultRowContainer, styles.center, {backgroundColor: 'green', marginRight: 10, width: 30, height: 30, borderRadius: 15}]}>
-                  <Text style={[styles.secondary, {fontSize: 20}]}>+</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={[styles.defaultInventoryCardAddon, styles.defaultRowContainer, styles.center]}>
-                <TouchableOpacity onPress={() => rollons !== 0 ? setRollons(rollons - 1) : setRollons(0)} style={[styles.defaultRowContainer, styles.center, {backgroundColor: 'red', marginLeft: 10, width: 30, height: 30, borderRadius: 15}]}>
-                  <Text style={[styles.secondary, {fontSize: 20}]}>-</Text>
-                </TouchableOpacity>
-                <View style={[styles.defaultColumnContainer, styles.spacer, styles.center]}>
-                  <Text style={[styles.headerText, styles.primary, styles.bold, styles.center]}>{rollons}</Text>
-                  <Text style={[styles.baseText, styles.primary, styles.bold, styles.center]}>Roll-Ons</Text>
-                </View>
-                <TouchableOpacity onPress={() => setRollons(rollons + 1)} style={[styles.defaultRowContainer, styles.center, {backgroundColor: 'green', marginRight: 10, width: 30, height: 30, borderRadius: 15}]}>
-                  <Text style={[styles.secondary, {fontSize: 20}]}>+</Text>
-                </TouchableOpacity>
-              </View>
-              <TouchableOpacity onPress={() => setIsDelivery(!isDelivery)} style={[styles.defaultRowContainer, styles.actionListItem, {padding: 20, marginTop: 30,  marginBottom: 30}]}>
-                <Text style={[styles.spacer, styles.baseText, styles.bold, styles.tertiary]}>Tap to Mark as Delivery</Text>
-                {
-                  isDelivery &&
-                  <Ionicons name="md-checkmark" size={22} color={stylesheet.Tertiary} style={styles.bold} />
-                }
-              </TouchableOpacity>
-              <TouchableOpacity onPress={onUpdate} style={[styles.roundedButton, styles.filled, {marginLeft: '7.5%'}]}>
-                <Text style={styles.secondary}>Update</Text>
-              </TouchableOpacity>
-            </View>
-          }
-          {
-            line === 'edgybear' &&
-            <View style={[styles.defaultColumnContainer, styles.fullWidth]}>
-              <Text style={[styles.baseText, styles.bold, styles.marginWidth, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>Notes</Text>
-              <TextInput
-                placeholderTextColor="#888"
-                multiline={true}
-                style={[{marginTop: 10,  marginBottom: 40}, styles.baseInput]}
-                placeholder="Enter notes here"
-                numberOfLines={5}
-                value={notes}
-                onChangeText={(text) => setNotes(text)}
-              />
-              <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>Tap Box to Add Product Count</Text>
-              <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {flexWrap: 'wrap'}]}>
-                <TouchableOpacity onPress={() => setTropicalGummies(tropicalGummies + 1)} onLongPress={() => tropicalGummies !== 0 ? setTropicalGummies(tropicalGummies - 1) : setTropicalGummies(0)} style={[styles.defaultInventoryCardAddonSmall, styles.defaultRowContainer, styles.center]}>
-                  <View style={[styles.defaultColumnContainer, styles.spacer, styles.center]}>
-                    <Text style={[styles.headerText, styles.primary, styles.bold, styles.center]}>{tropicalGummies}</Text>
-                    <Text style={[styles.baseText, styles.primary, styles.bold, styles.center, styles.centerText]}>Tropical Gummies</Text>
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setSourappleGummies(sourappleGummies + 1)} onLongPress={() => sourappleGummies !== 0 ? setSourappleGummies(sourappleGummies - 1) : setSourappleGummies(0)} style={[styles.defaultInventoryCardAddonSmall, styles.defaultRowContainer, styles.center]}>
-                  <View style={[styles.defaultColumnContainer, styles.spacer, styles.center]}>
-                    <Text style={[styles.headerText, styles.primary, styles.bold, styles.center]}>{sourappleGummies}</Text>
-                    <Text style={[styles.baseText, styles.primary, styles.bold, styles.center, styles.centerText]}>Sour Apple Gummies</Text>
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setBerriesGummies(berriesGummies + 1)} onLongPress={() => berriesGummies !== 0 ? setBerriesGummies(berriesGummies - 1) : setBerriesGummies(0)} style={[styles.defaultInventoryCardAddonSmall, styles.defaultRowContainer, styles.center]}>
-                  <View style={[styles.defaultColumnContainer, styles.spacer, styles.center]}>
-                    <Text style={[styles.headerText, styles.primary, styles.bold, styles.center]}>{berriesGummies}</Text>
-                    <Text style={[styles.baseText, styles.primary, styles.bold, styles.center, styles.centerText]}>Berries Gummies</Text>
-                  </View>
-                </TouchableOpacity>
+          <View style={[styles.defaultColumnContainer, styles.fullWidth]}>
+            <Text style={[styles.baseText, styles.bold, styles.marginWidth, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>Notes</Text>
+            <TextInput
+              placeholderTextColor="#888"
+              multiline={true}
+              style={[{marginTop: 5,  marginBottom: 20}, styles.baseInput]}
+              placeholder="Enter notes here"
+              numberOfLines={1}
+              value={notes}
+              onChangeText={(text) => setNotes(text)}
+            />
+            <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>Tap Box to Add Product Count</Text>
 
-                <TouchableOpacity onPress={() => setSourdieselJoints(sourdieselJoints + 1)} onLongPress={() => sourdieselJoints !== 0 ? setSourdieselJoints(sourdieselJoints - 1) : setSourdieselJoints(0)} style={[styles.defaultInventoryCardAddonSmall, styles.defaultRowContainer, styles.center]}>
-                  <View style={[styles.defaultColumnContainer, styles.spacer, styles.center]}>
-                    <Text style={[styles.headerText, styles.primary, styles.bold, styles.center]}>{sourdieselJoints}</Text>
-                    <Text style={[styles.baseText, styles.primary, styles.bold, styles.center, styles.centerText]}>Sour Diesel Joints</Text>
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setSpacecandyJoints(spacecandyJoints + 1)} onLongPress={() => spacecandyJoints !== 0 ? setSpacecandyJoints(spacecandyJoints - 1) : setSpacecandyJoints(0)} style={[styles.defaultInventoryCardAddonSmall, styles.defaultRowContainer, styles.center]}>
-                  <View style={[styles.defaultColumnContainer, styles.spacer, styles.center]}>
-                    <Text style={[styles.headerText, styles.primary, styles.bold, styles.center]}>{spacecandyJoints}</Text>
-                    <Text style={[styles.baseText, styles.primary, styles.bold, styles.center, styles.centerText]}>Space Candy Joints</Text>
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setGodfatherJoints(godfatherJoints + 1)} onLongPress={() => godfatherJoints !== 0 ? setGodfatherJoints(godfatherJoints - 1) : setGodfatherJoints(0)} style={[styles.defaultInventoryCardAddonSmall, styles.defaultRowContainer, styles.center]}>
-                  <View style={[styles.defaultColumnContainer, styles.spacer, styles.center]}>
-                    <Text style={[styles.headerText, styles.primary, styles.bold, styles.center]}>{godfatherJoints}</Text>
-                    <Text style={[styles.baseText, styles.primary, styles.bold, styles.center, styles.centerText]}>Godfather Joints</Text>
-                  </View>
-                </TouchableOpacity>
+            {
+              lineProducts.map(product => {
+                let key = line + "_" + product
 
-                <TouchableOpacity onPress={() => setSourdieselFlower(sourdieselFlower + 1)} onLongPress={() => sourdieselFlower !== 0 ? setSourdieselFlower(sourdieselFlower - 1) : setSourdieselFlower(0)} style={[styles.defaultInventoryCardAddonSmall, styles.defaultRowContainer, styles.center]}>
-                  <View style={[styles.defaultColumnContainer, styles.spacer, styles.center]}>
-                    <Text style={[styles.headerText, styles.primary, styles.bold, styles.center]}>{sourdieselFlower}</Text>
-                    <Text style={[styles.baseText, styles.primary, styles.bold, styles.center, styles.centerText]}>Sour Diesel Flower</Text>
+                return (
+                  <View style={[styles.defaultInventoryCardAddon, styles.defaultRowContainer, styles.center]}>
+                    <TouchableOpacity onPress={() => UpdateInventories(key, true)} style={[styles.defaultRowContainer, styles.center, {backgroundColor: 'red', marginLeft: 10, width: 30, height: 30, borderRadius: 15}]}>
+                      <Text style={[styles.secondary, {fontSize: 20}]}>-</Text>
+                    </TouchableOpacity>
+                    <View style={[styles.defaultColumnContainer, styles.spacer, styles.center]}>
+                      <Text style={[styles.headerText, styles.primary, styles.bold, styles.center]}>{inventories[key]}</Text>
+                      <Text style={[styles.baseText, styles.primary, styles.bold, styles.center]}>{FormatProductName(key)}</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => UpdateInventories(key)} style={[styles.defaultRowContainer, styles.center, {backgroundColor: 'green', marginRight: 10, width: 30, height: 30, borderRadius: 15}]}>
+                      <Text style={[styles.secondary, {fontSize: 20}]}>+</Text>
+                    </TouchableOpacity>
                   </View>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setSpacecandyFlower(spacecandyFlower + 1)} onLongPress={() => spacecandyFlower !== 0 ? setSpacecandyFlower(spacecandyFlower - 1) : setSpacecandyFlower(0)} style={[styles.defaultInventoryCardAddonSmall, styles.defaultRowContainer, styles.center]}>
-                  <View style={[styles.defaultColumnContainer, styles.spacer, styles.center]}>
-                    <Text style={[styles.headerText, styles.primary, styles.bold, styles.center]}>{spacecandyFlower}</Text>
-                    <Text style={[styles.baseText, styles.primary, styles.bold, styles.center, styles.centerText]}>Space Candy Flower</Text>
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setGodfatherFlower(godfatherFlower + 1)} onLongPress={() => godfatherFlower !== 0 ? setGodfatherFlower(godfatherFlower - 1) : setGodfatherFlower(0)} style={[styles.defaultInventoryCardAddonSmall, styles.defaultRowContainer, styles.center]}>
-                  <View style={[styles.defaultColumnContainer, styles.spacer, styles.center]}>
-                    <Text style={[styles.headerText, styles.primary, styles.bold, styles.center]}>{godfatherFlower}</Text>
-                    <Text style={[styles.baseText, styles.primary, styles.bold, styles.center, styles.centerText]}>Godfather Flower</Text>
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={() => setOilDefault(oilDefault + 1)} onLongPress={() => oilDefault !== 0 ? setOilDefault(oilDefault - 1) : setOilDefault(0)} style={[styles.defaultInventoryCardAddonSmall, styles.defaultRowContainer, styles.center]}>
-                  <View style={[styles.defaultColumnContainer, styles.spacer, styles.center]}>
-                    <Text style={[styles.headerText, styles.primary, styles.bold, styles.center]}>{oilDefault}</Text>
-                    <Text style={[styles.baseText, styles.primary, styles.bold, styles.center, styles.centerText]}>Oil Default</Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-
-              <TouchableOpacity onPress={() => setIsDelivery(!isDelivery)} style={[styles.defaultRowContainer, styles.actionListItem, {padding: 20, marginTop: 30,  marginBottom: 30}]}>
-                <Text style={[styles.spacer, styles.baseText, styles.bold, styles.tertiary]}>Tap to Mark as Delivery</Text>
-                {
-                  isDelivery &&
-                  <Ionicons name="md-checkmark" size={22} color={stylesheet.Tertiary} style={styles.bold} />
-                }
-              </TouchableOpacity>
-              <TouchableOpacity onPress={onUpdate} style={[styles.roundedButton, styles.filled, {marginLeft: '7.5%'}]}>
-                <Text style={styles.secondary}>Update</Text>
-              </TouchableOpacity>
-            </View>
-          }
+                )
+              })
+            }
+            <TouchableOpacity onPress={() => setIsDelivery(!isDelivery)} style={[styles.defaultRowContainer, styles.actionListItem, {padding: 20, marginTop: 30,  marginBottom: 30}]}>
+              <Text style={[styles.spacer, styles.baseText, styles.bold, styles.tertiary]}>Tap to Mark as Delivery</Text>
+              {
+                isDelivery &&
+                <Ionicons name="md-checkmark" size={22} color={stylesheet.Tertiary} style={styles.bold} />
+              }
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onUpdate} style={[styles.roundedButton, styles.filled, {marginLeft: '7.5%'}]}>
+              <Text style={styles.secondary}>Update</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ActionSheet>
       <ActionSheet containerStyle={{paddingBottom: 20, backgroundColor: stylesheet.Secondary}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} ref={infoSheetRef}>
@@ -735,24 +536,18 @@ export default function DistributorComponent({navigation, route}) {
             info.managers &&
             <Text selectable={true} style={[styles.baseText, styles.center, {marginTop: 10}]}>When visiting, if necessary, check in with <Text selectable={true} style={[styles.primary, styles.bold]}>{info?.managers.join(' or ')}</Text></Text>
           }
-          <Text selectable={true} style={[styles.baseText, styles.center, {marginTop: 10}]}>This location offers <Text style={[styles.primary, styles.bold]} selectable={true}>{lines.map(l => FormatLine(l)).join(' and ')}</Text></Text>
-          {
-            lines.includes('herencia') &&
-            <Text selectable={true} style={[styles.baseText, styles.center, {marginTop: 10}]}>There should be a total of <Text style={[styles.primary, styles.bold]} selectable={true}>{info?.herencia_displays}</Text> Herencia del Abuelo displays at this location</Text>
-          }
+          <Text selectable={true} style={[styles.baseText, styles.center, {marginTop: 10}]}>This location offers <Text style={[styles.primary, styles.bold]} selectable={true}>{lines.map(l => FormatSerieName(l)).join(' and ')}</Text></Text>
+          <Text selectable={true} style={[styles.baseText, styles.center, {marginTop: 10}]}>There should be a total of <Text style={[styles.primary, styles.bold]} selectable={true}>{info[`${line}_displays`]}</Text> {FormatSerieName(line)} displays at this location</Text>
           <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {marginTop: 30, marginBottom: 10}]}>
-            {
-              line === 'herencia' &&
-              <TouchableOpacity
-                onPress={() => navigation.navigate('DistributorDepth', {identifier: route.params.identifier, company: route.params.company})}
-                underlayColor='#fff'
-                style={[{marginLeft: 10, marginRight: 10}, styles.center]}>
-                <Feather name="bar-chart-2" size={26} color={stylesheet.Primary} />
-                <Text style={{marginTop: 5, fontSize: 12, color: stylesheet.Primary}}>Analytics</Text>
-              </TouchableOpacity>
-            }
             <TouchableOpacity
-              onPress={() => {infoSheetRef.current?.setModalVisible(false); setTimeout(() => herenciaUpkeepSheetRef.current?.setModalVisible(true), 500)}}
+              onPress={() => navigation.navigate('DistributorDepth', {identifier: route.params.identifier, company: route.params.company, line})}
+              underlayColor='#fff'
+              style={[{marginLeft: 10, marginRight: 10}, styles.center]}>
+              <Feather name="bar-chart-2" size={26} color={stylesheet.Primary} />
+              <Text style={{marginTop: 5, fontSize: 12, color: stylesheet.Primary}}>Analytics</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {infoSheetRef.current?.setModalVisible(false); setTimeout(() => layoutSheetRef.current?.setModalVisible(true), 500)}}
               underlayColor='#fff' style={[{marginLeft: 10, marginRight: 10}, styles.center]}>
               <Feather name="layout" size={24} color={stylesheet.Primary} />
               <Text style={{marginTop: 5, fontSize: 12, color: stylesheet.Primary}}>Layout</Text>
@@ -766,41 +561,41 @@ export default function DistributorComponent({navigation, route}) {
           </View>
         </View>
       </ActionSheet>
-      <ActionSheet containerStyle={{paddingBottom: 20, backgroundColor: stylesheet.Secondary}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} ref={herenciaUpkeepSheetRef}>
+      <ActionSheet containerStyle={{paddingBottom: 20, backgroundColor: stylesheet.Secondary}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} ref={layoutSheetRef}>
         <View style={{padding: 20}}>
-          <Text style={[styles.baseText, styles.bold, styles.marginWidth, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>Herencia del Abuelo Displays</Text>
+          <Text style={[styles.baseText, styles.bold, styles.marginWidth, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>{FormatSerieName(line)} Displays</Text>
           <TextInput
             placeholderTextColor="#888"
-            style={[{marginTop: 10,  marginBottom: 40}, styles.baseInput]}
+            style={[{marginTop: 10,  marginBottom: 10}, styles.baseInput]}
             placeholder="Enter amount..."
-            value={info?.herencia_displays?.toString()}
+            value={info[`${line}_displays`]?.toString()}
             keyboardType={"numeric"}
-            onChangeText={(text) => setInfo({...info, herencia_displays: text})}
+            onChangeText={(text) => UpdateInfo('displays', text)}
           />
 
           <Text style={[styles.baseText, styles.bold, styles.marginWidth, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>How Visible are the Displays?</Text>
 
-          <TouchableOpacity style={[styles.paddedWidth, {marginTop: 10, marginBottom: 10}]} onPress={() => setInfo({...info, herencia_visibility: 5})}>
-            <Text style={[styles.baseText, styles.tertiary, {opacity: info?.herencia_visibility == 5 ? 0.2 : 1}]}>Next to Register</Text>
+          <TouchableOpacity style={[styles.paddedWidth, {marginTop: 10, marginBottom: 10}]} onPress={() => UpdateInfo('visibility', 5)}>
+            <Text style={[styles.baseText, styles.tertiary, {opacity: info[`${line}_visibility`] == 5 ? 0.2 : 1}]}>Next to Register</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.paddedWidth, {marginTop: 10, marginBottom: 10}]} onPress={() => setInfo({...info, herencia_visibility: 4})}>
-            <Text style={[styles.baseText, styles.tertiary, {opacity: info?.herencia_visibility == 4 ? 0.2 : 1}]}>By Register</Text>
+          <TouchableOpacity style={[styles.paddedWidth, {marginTop: 10, marginBottom: 10}]} onPress={() => UpdateInfo('visibility', 4)}>
+            <Text style={[styles.baseText, styles.tertiary, {opacity: info[`${line}_visibility`] == 4 ? 0.2 : 1}]}>By Register</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.paddedWidth, {marginTop: 10, marginBottom: 10}]} onPress={() => setInfo({...info, herencia_visibility: 3})}>
-            <Text style={[styles.baseText, styles.tertiary, {opacity: info?.herencia_visibility == 3 ? 0.2 : 1}]}>In Lane</Text>
+          <TouchableOpacity style={[styles.paddedWidth, {marginTop: 10, marginBottom: 10}]} onPress={() => UpdateInfo('visibility', 3)}>
+            <Text style={[styles.baseText, styles.tertiary, {opacity: info[`${line}_visibility`] == 3 ? 0.2 : 1}]}>In Lane</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.paddedWidth, {marginTop: 10, marginBottom: 10}]} onPress={() => setInfo({...info, herencia_visibility: 2})}>
-            <Text style={[styles.baseText, styles.tertiary, {opacity: info?.herencia_visibility == 2 ? 0.2 : 1}]}>Close to Lane</Text>
+          <TouchableOpacity style={[styles.paddedWidth, {marginTop: 10, marginBottom: 10}]} onPress={() => UpdateInfo('visibility', 2)}>
+            <Text style={[styles.baseText, styles.tertiary, {opacity: info[`${line}_visibility`] == 2 ? 0.2 : 1}]}>Close to Lane</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.paddedWidth, {marginTop: 10, marginBottom: 10}]} onPress={() => setInfo({...info, herencia_visibility: 1})}>
-            <Text style={[styles.baseText, styles.tertiary, {opacity: info?.herencia_visibility == 1 ? 0.2 : 1}]}>Stored Away</Text>
+          <TouchableOpacity style={[styles.paddedWidth, {marginTop: 10, marginBottom: 10}]} onPress={() => UpdateInfo('visibility', 1)}>
+            <Text style={[styles.baseText, styles.tertiary, {opacity: info[`${line}_visibility`] == 1 ? 0.2 : 1}]}>Stored Away</Text>
           </TouchableOpacity>
 
           <Text style={[styles.baseText, styles.bold, styles.marginWidth, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>How many lanes are there in total?</Text>
 
           <TextInput
             placeholderTextColor="#888"
-            style={[{marginTop: 10,  marginBottom: 40}, styles.baseInput]}
+            style={[{marginTop: 10,  marginBottom: 10}, styles.baseInput]}
             placeholder="Enter amount..."
             value={info?.dist_lanes?.toString()}
             keyboardType={"numeric"}
@@ -809,8 +604,8 @@ export default function DistributorComponent({navigation, route}) {
 
 
           {
-            info?.herencia_displays && info?.herencia_visibility &&
-            <TouchableOpacity onPress={onUpdateHerenciaUpkeep} style={[styles.roundedButton, styles.filled, {marginLeft: '7.5%', marginTop: 40}]}>
+            info[`${line}_displays`] && info[`${line}_visibility`] &&
+            <TouchableOpacity onPress={onUpdateLayout} style={[styles.roundedButton, styles.filled, {marginLeft: '7.5%', marginTop: 20, marginBottom: 20}]}>
               <Text style={styles.secondary}>Update</Text>
             </TouchableOpacity>
           }
