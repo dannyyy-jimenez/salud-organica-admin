@@ -330,7 +330,7 @@ export default function DistributorComponent({navigation, route}) {
             </View>
 
             <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>Timelapse of Inventory</Text>
-            {/* <LineChart
+            <LineChart
               data={{
                 labels: projections ? [...inventory.map(lin => lin.date).reverse().slice(-4), moment(projections[14].date).format("MM/DD")] : inventory.map(lin => lin.date).reverse().slice(-5),
                 datasets: [
@@ -379,7 +379,7 @@ export default function DistributorComponent({navigation, route}) {
                 marginTop: 40,
                 left: -20
               }}
-            /> */}
+            />
 
             {
               progressLog && ((inventory.length > 0 && inventory[1].totalCount - inventory[0].totalCount >= 0) || rangeBegin) &&
