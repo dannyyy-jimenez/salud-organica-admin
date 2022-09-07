@@ -417,6 +417,7 @@ export default function InvoicesComponent({navigation, route}) {
       setInvoiceLine([])
       setInvoiceOwnerIdentifier("")
     } catch (e) {
+      console.log(e)
       setIsLoading(false)
       invoiceActionSheetRef.current?.setModalVisible(true)
     }
@@ -606,6 +607,12 @@ export default function InvoicesComponent({navigation, route}) {
 
     loadInvoiceRec()
   }, [invoiceOwnerIdentifier])
+
+  React.useEffect(() => {
+    if (!location) return;
+
+    load()
+  }, [location])
 
   React.useEffect(() => {
     if (route.params && route.params.invoiceOwnerIdentifier && typeof route.params.invoiceOwnerIdentifier == "string" && route.params.invoiceOwnerIdentifier !== "") {
@@ -973,9 +980,6 @@ export default function InvoicesComponent({navigation, route}) {
                       <AntDesign name="pdffile1" size={28} color="black" />
                       <Text style={{marginTop: 5, fontSize: 12}}>Share</Text>
                     </TouchableOpacity>
-                    {/* <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => GetShareableURI(invoice.identifier)}>
-                      <Feather name="type" size={28} color="black" />
-                    </TouchableOpacity> */}
                     {
                       !topups.includes(invoice.identifier) &&
                       <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => TopUpDelivery(invoice)}>
@@ -1208,7 +1212,15 @@ export default function InvoicesComponent({navigation, route}) {
                     <Text style={[styles.baseText, styles.bold, !invoicePaymentIsCash ? styles.secondary : styles.tertiary]}>Check</Text>
                   </Pressable>
                 </View>
-                <Text style={[styles.baseText, styles.bold, styles.marginWidth, styles.tertiary]}>Amount Paid</Text>
+                <View style={[styles.defaultRowContainer, styles.marginWidth]}>
+                  <Text style={[styles.baseText, styles.bold, styles.tertiary]}>
+                    Amount Paid
+                  </Text>
+                  <View style={[styles.spacer]}></View>
+                  <Pressable onPress={() => setInvoicePaymentAmount(scopeInvoice.balance.toFixed(2))}>
+                    <Text style={[styles.baseText, styles.bold, styles.primary]}>FULL ${scopeInvoice.balance.toFixed(2)}</Text>
+                  </Pressable>
+                </View>
                 <TextInput
                   placeholderTextColor="#888"
                   style={[{marginTop: 25,  marginBottom: 20, width: '100%'}, styles.baseInput]}
@@ -1384,7 +1396,7 @@ export default function InvoicesComponent({navigation, route}) {
               invoiceOwnerIdentifier !== "" && invoiceAddMode &&
               <>
                 {
-                  invoiceRec[invoiceLineItemRefIdentifier] &&
+                  invoiceRec[invoiceLineItemRefIdentifier] > 0 &&
                   <Text style={[styles.baseText, styles.bold, styles.centerText, styles.opaque, styles.tertiary, {marginBottom: 20}]}>Based on previous inventory data the <Text style={styles.primary}>recommended delivery quantity is {invoiceRec[invoiceLineItemRefIdentifier]}</Text></Text>
                 }
                 {
@@ -1392,7 +1404,7 @@ export default function InvoicesComponent({navigation, route}) {
                   <>
                     <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Product</Text>
                     <Text style={[{marginTop: 10}, styles.baseText, styles.tertiary]}>{FormatProductName(products.find(p => p.identifier === invoiceLineItemRefIdentifier).identifier)}</Text>
-                    <Image style={{ marginTop: 20, width: 120, height: 120}} resizeMode="contain" source={{uri: 'https://res.cloudinary.com/cbd-salud-sativa/image/upload/f_auto,q_auto/' + products.find(p => p.identifier === invoiceLineItemRefIdentifier).shot}}></Image>
+                    <Image style={{ marginTop: 20, width: 120, height: 120}} resizeMode="contain" source={{uri: 'https://res.cloudinary.com/cbd-salud-sativa/image/upload/f_auto,q_auto,w_100/' + products.find(p => p.identifier === invoiceLineItemRefIdentifier).shot}}></Image>
                     <Text style={[styles.baseText, styles.bold, styles.tertiary, {marginTop: 20}]}>Lot Number</Text>
                     <Text style={[styles.baseText, styles.tertiary, {marginBottom: 20}]}>#{invoiceLineItemRefLot}</Text>
                   </>
@@ -1480,7 +1492,7 @@ export default function InvoicesComponent({navigation, route}) {
                         products.filter(p => p.sku).map(product => {
                           return (
                             <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setInvoiceLineItemRefIdentifier(product.identifier)}}>
-                              <Image style={{ width: 120, height: 120, backgroundColor: product.identifier === invoiceLineItemRefIdentifier ? stylesheet.Primary : 'white'}} resizeMode="contain" source={{uri: 'https://res.cloudinary.com/cbd-salud-sativa/image/upload/f_auto,q_auto/' + product.shot}}></Image>
+                              <Image style={{ width: 120, height: 120, backgroundColor: product.identifier === invoiceLineItemRefIdentifier ? stylesheet.Primary : 'white'}} resizeMode="contain" source={{uri: 'https://res.cloudinary.com/cbd-salud-sativa/image/upload/f_auto,q_auto,w_100/' + product.shot}}></Image>
                             </TouchableOpacity>
                           )
                         })

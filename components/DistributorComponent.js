@@ -476,6 +476,10 @@ export default function DistributorComponent({navigation, route}) {
         }
       </ScrollView>
 
+
+      <TouchableOpacity onPress={() => navigation.navigate("Invoices", {screen: "InboxInhouseInvoices", params: {invoiceOwnerIdentifier: route.params.identifier}})} style={[styles.center, styles.fab, {bottom: 80}]}>
+        <Feather name="file-plus" size={22} color={stylesheet.SecondaryTint} />
+      </TouchableOpacity>
       <TouchableOpacity onPress={() => actionSheetRef.current?.setModalVisible(true)} style={[styles.center, styles.fab]}>
         <Feather name="sliders" size={22} color={stylesheet.SecondaryTint} />
       </TouchableOpacity>

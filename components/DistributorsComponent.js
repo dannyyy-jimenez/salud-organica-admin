@@ -199,10 +199,11 @@ export default function Distributors({navigation}) {
         return;
       }
 
-      Location.watchPositionAsync({distanceInterval: 50}, (location) => {
+      Location.watchPositionAsync({distanceInterval: 5}, (location) => {
         if (search !== "") return;
         setLocation(location);
 
+        if (routeMode) return;
         load(location, false)
       });
     })();
@@ -422,7 +423,7 @@ export default function Distributors({navigation}) {
           </View>
         }
         {
-          routeMode.active && routeMode.current < routeMode.total &&
+          distributors[routeMode.current] && routeMode.active && routeMode.current < routeMode.total &&
           <View style={[styles.defaultTabScrollContent, {alignItems: 'flex-start', justifyContent: 'flex-start', width: '90%', marginLeft: '5%', paddingBottom: 70}]}>
             {
               <TouchableOpacity key={distributors[routeMode.current].identifier} onPress={() => navigation.navigate('DistributorView', {identifier: distributors[routeMode.current].identifier, company: distributors[routeMode.current].company})} style={[styles.fullStoreCard, styles.elevated]}>
