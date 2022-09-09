@@ -109,7 +109,6 @@ export default function DistributorComponent({navigation, route}) {
       load(true)
 
     } catch (e) {
-      console.log(e)
       setIsLoading(false)
     }
   }
@@ -332,10 +331,10 @@ export default function DistributorComponent({navigation, route}) {
             <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>Timelapse of Inventory</Text>
             <LineChart
               data={{
-                labels: projections ? [...inventory.map(lin => lin.date).reverse().slice(-4), moment(projections[14].date).format("MM/DD")] : inventory.map(lin => lin.date).reverse().slice(-5),
+                labels: inventory.map(lin => lin.date).reverse().slice(-5),
                 datasets: [
                   {
-                    data: projections ? [...inventory.map(lin => lin.totalCount).reverse().slice(-4), projections[14].amount] : inventory.map(lin => lin.totalCount).reverse().slice(-5)
+                    data: inventory.map(lin => lin.totalCount).reverse().slice(-5)
                   }
                 ]
               }}
@@ -380,6 +379,57 @@ export default function DistributorComponent({navigation, route}) {
                 left: -20
               }}
             />
+
+            {
+              projections &&
+              <>
+                <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>Inventory Projections</Text>
+                <LineChart
+                  data={{
+                    labels: ["", moment(projections[7].date).format('MM/DD'), moment(projections[14].date).format('MM/DD'), moment(projections[21].date).format('MM/DD')],
+                    datasets: [
+                      {
+                        data: [inventory[0].totalCount, projections[7].amount, projections[14].amount, projections[21].amount]
+                      }
+                    ]
+                  }}
+                  getDotColor="#000"
+                  width={Dimensions.get("window").width * 0.98} // from react-native
+                  height={220}
+                  yAxisLabel=""
+                  yAxisSuffix=""
+                  yAxisInterval={1} // optional, defaults to 1
+                  withShadow={false}
+                  withInnerLines={false}
+                  withOuterLines={true}
+                  withVerticalLines={true}
+                  withHorizontalLines={true}
+                  chartConfig={{
+                    backgroundGradientFrom: "#fff",
+                    backgroundGradientTo: "#fff",
+                    fillShadowGradientFrom: "blue",
+                    fillShadowGradientTo: "red",
+                    backgroundGradientFromOpacity: 0,
+                    backgroundGradientToOpacity: 1,
+                    fillShadowGradientFromOpacity: 0,
+                    fillShadowGradientToOpacity: 1,
+                    propsForBackgroundLines: [{
+                      fillOpacity: 0.7,
+                    }],
+                    decimalPlaces: 0, // optional, defaults to 2dp
+                    color: (opacity = 1) => stylesheet.Primary,
+                    labelColor: (opacity = 1) => `rgba(33, 33, 33, ${opacity})`
+                  }}
+                  bezier
+                  style={{
+                    padding: 0,
+                    margin: 0,
+                    marginTop: 40,
+                    left: -20
+                  }}
+                />
+              </>
+            }
 
             {
               progressLog && ((inventory.length > 0 && inventory[1].totalCount - inventory[0].totalCount >= 0) || rangeBegin) &&

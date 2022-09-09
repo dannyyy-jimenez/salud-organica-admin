@@ -514,6 +514,17 @@ const Styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 1 },
     elevation: 5
+  },
+  cardAttentive: {
+    paddingLeft: 10,
+    paddingRight: 10,
+    paddingTop: 10,
+    paddingBottom: 10,
+    borderRadius: 5,
+    backgroundColor: Primary,
+    marginTop: 5,
+    alignSelf: 'flex-start',
+    marginBottom: 5
   }
 });
 

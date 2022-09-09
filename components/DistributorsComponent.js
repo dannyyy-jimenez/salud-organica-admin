@@ -18,7 +18,7 @@ const actionSheetRef = React.createRef();
 const createSheetRef = React.createRef();
 
 class Distributor {
-  constructor(identifier, company, managers, address, lines, lat, lng, status, route, location) {
+  constructor(identifier, company, managers, address, lines, lat, lng, status, route, location, issues = []) {
     this.identifier = identifier;
     this.company = company;
     this.managers = managers;
@@ -30,6 +30,7 @@ class Distributor {
     this.status = status;
     this.route = route;
     this.distance = this.CalculateDistance()
+    this.issues = issues;
   }
 
   CalculateDistance() {
@@ -111,7 +112,7 @@ export default function Distributors({navigation}) {
       let dists = []
 
       if (sortBy === 'default') {
-        dists = res.data._d.map(distributor => new Distributor(distributor.identifier, distributor.company, distributor.managers, distributor.address, distributor.lines, distributor.lat, distributor.lng, distributor.status, distributor.route, loc ? loc.coords : location ? location.coords : {latitude: 0, longitude: 0})).sort((a, b) => {
+        dists = res.data._d.map(distributor => new Distributor(distributor.identifier, distributor.company, distributor.managers, distributor.address, distributor.lines, distributor.lat, distributor.lng, distributor.status, distributor.route, loc ? loc.coords : location ? location.coords : {latitude: 0, longitude: 0}, distributor.issues)).sort((a, b) => {
           let letterA = a.route.split("")[0]
           let letterB = b.route.split("")[0]
 
@@ -136,7 +137,7 @@ export default function Distributors({navigation}) {
         }
         setRouteLetters(uniqueRoutes)
       } else if (sortBy === 'urgency') {
-        dists = res.data._d.map(distributor => new Distributor(distributor.identifier, distributor.company, distributor.managers, distributor.address, distributor.lines, distributor.lat, distributor.lng, distributor.status, distributor.route, loc ? loc.coords : location ? location.coords : {latitude: 0, longitude: 0})).sort((a, b) => b.status - a.status)
+        dists = res.data._d.map(distributor => new Distributor(distributor.identifier, distributor.company, distributor.managers, distributor.address, distributor.lines, distributor.lat, distributor.lng, distributor.status, distributor.route, loc ? loc.coords : location ? location.coords : {latitude: 0, longitude: 0}, distributor.issues)).sort((a, b) => b.status - a.status)
       }
 
       setDefaultDistributors(dists)
@@ -199,11 +200,10 @@ export default function Distributors({navigation}) {
         return;
       }
 
-      Location.watchPositionAsync({distanceInterval: 5}, (location) => {
+      Location.watchPositionAsync({distanceInterval: 50}, (location) => {
         if (search !== "") return;
         setLocation(location);
 
-        if (routeMode) return;
         load(location, false)
       });
     })();
@@ -423,7 +423,7 @@ export default function Distributors({navigation}) {
           </View>
         }
         {
-          distributors[routeMode.current] && routeMode.active && routeMode.current < routeMode.total &&
+          routeMode.active && routeMode.current < routeMode.total &&
           <View style={[styles.defaultTabScrollContent, {alignItems: 'flex-start', justifyContent: 'flex-start', width: '90%', marginLeft: '5%', paddingBottom: 70}]}>
             {
               <TouchableOpacity key={distributors[routeMode.current].identifier} onPress={() => navigation.navigate('DistributorView', {identifier: distributors[routeMode.current].identifier, company: distributors[routeMode.current].company})} style={[styles.fullStoreCard, styles.elevated]}>
@@ -531,6 +531,27 @@ export default function Distributors({navigation}) {
                 <View style={[styles.defaultColumnContainer, styles.fullWidth, styles.fullSCContent, {borderBottomRightRadius: 0, borderBottomLeftRadius: 0, backgroundColor: "#FCFCFC"}]}>
                   <Text style={[styles.tinyText, styles.bold, {opacity: 0.5}, styles.center]}>{nearest.address}</Text>
                   <Text numberOfLines={1} style={[styles.subHeaderText, styles.nunitoText, styles.tertiary, {marginTop: 20, marginBottom: 20}]}>{nearest.company}</Text>
+                  {
+                    nearest.issues && nearest.issues.length > 0 &&
+                    <View style={[styles.fullWidth, {flex: 1}]}>
+                      {
+                        nearest.issues.filter(issue => issue.type === "INVOICE" && issue.status === "OVERDUE").length > 0 &&
+                        <>
+                          <View style={[styles.cardAttentive, {backgroundColor: '#FF3131'}]}>
+                            <Text style={{color: 'white'}}>{nearest.issues.filter(issue => issue.type === "INVOICE" && issue.status === "OVERDUE").length} Overdue Invoice(s)</Text>
+                          </View>
+                        </>
+                      }
+                      {
+                        nearest.issues.filter(issue => issue.type === "INVOICE" && issue.status === "PENDING").length > 0 &&
+                        <>
+                          <View style={[styles.cardAttentive, {backgroundColor: '#FF6347'}]}>
+                            <Text style={{color: 'white'}}>{nearest.issues.filter(issue => issue.type === "INVOICE" && issue.status === "PENDING").length} Pending Invoice(s)</Text>
+                          </View>
+                        </>
+                      }
+                    </View>
+                  }
                 </View>
                 <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {padding: 10, backgroundColor: '#F9F9F9', borderBottomLeftRadius: 10, borderBottomRightRadius: 10}]}>
                   {
@@ -601,6 +622,28 @@ export default function Distributors({navigation}) {
                     <View style={[styles.defaultColumnContainer, styles.fullWidth, styles.fullSCContent, {borderBottomRightRadius: 0, borderBottomLeftRadius: 0, backgroundColor: "#FCFCFC"}]}>
                       <Text style={[styles.tinyText, styles.bold, {opacity: 0.5}, styles.center]}>{distributor.address}</Text>
                       <Text numberOfLines={1} style={[styles.subHeaderText, styles.nunitoText, styles.tertiary, {marginTop: 20, marginBottom: 20}]}>{distributor.company}</Text>
+
+                      {
+                        distributor.issues && distributor.issues.length > 0 &&
+                        <View style={[styles.fullWidth, {flex: 1}]}>
+                          {
+                            distributor.issues.filter(issue => issue.type === "INVOICE" && issue.status === "OVERDUE").length > 0 &&
+                            <>
+                              <View style={[styles.cardAttentive, {backgroundColor: '#FF3131'}]}>
+                                <Text style={{color: 'white'}}>{distributor.issues.filter(issue => issue.type === "INVOICE" && issue.status === "OVERDUE").length} Overdue Invoice(s)</Text>
+                              </View>
+                            </>
+                          }
+                          {
+                            distributor.issues.filter(issue => issue.type === "INVOICE" && issue.status === "PENDING").length > 0 &&
+                            <>
+                              <View style={[styles.cardAttentive, {backgroundColor: '#FF6347'}]}>
+                                <Text style={{color: 'white'}}>{distributor.issues.filter(issue => issue.type === "INVOICE" && issue.status === "PENDING").length} Pending Invoice(s)</Text>
+                              </View>
+                            </>
+                          }
+                        </View>
+                      }
                     </View>
                     <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {padding: 10, backgroundColor: '#F9F9F9', borderBottomLeftRadius: 10, borderBottomRightRadius: 10}]}>
                       {

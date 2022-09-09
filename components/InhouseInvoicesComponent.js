@@ -22,6 +22,7 @@ import {
   LineChart,
   ProgressChart
 } from "react-native-chart-kit";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 let stylesheet = require('../Styles')
 let styles = stylesheet.Styles;
@@ -103,6 +104,7 @@ export default function InvoicesComponent({navigation, route}) {
   const [invoiceAddScanMode, setInvoiceAddScanMode] = React.useState(false)
   const [invoiceAddSearchMode, setInvoiceAddSearchMode] = React.useState(false)
   const [promptInvoiceForNearestDist, setPromptInvoiceForNearestDist] = React.useState(false)
+  const [recentBatchNumber, setRecentBatchNumber] = React.useState('')
 
   // stats
 
@@ -347,10 +349,25 @@ export default function InvoicesComponent({navigation, route}) {
     }
   }, [scopeInvoice])
 
+  const getRecentBatch = async (identifier) => {
+    try {
+      const recent = await AsyncStorage.getItem(`LOT_NUM_${identifier}`)
+      if (recent !== null) {
+        return recent;
+      }
+      return ''
+    } catch (e) {
+      return ''
+    }
+  }
+
   React.useEffect(() => {
     if (invoiceLineItemRefIdentifier == "" || invoiceLineItemRefCost !== "") return;
 
     setInvoiceLineItemRefCost(products.find(p => p.identifier === invoiceLineItemRefIdentifier).distributorPrice.toFixed(2))
+    getRecentBatch(invoiceLineItemRefIdentifier).then(lot => {
+      setRecentBatchNumber(lot)
+    })
 
   }, [invoiceLineItemRefIdentifier])
 
@@ -383,7 +400,7 @@ export default function InvoicesComponent({navigation, route}) {
     }
   }
 
-  const onAddLineItem = () => {
+  const onAddLineItem = async () => {
     setInvoiceLine([...invoiceLine, {
       identifier: invoiceLineItemRefIdentifier,
       quantity: invoiceLineItemRefQty,
@@ -391,6 +408,8 @@ export default function InvoicesComponent({navigation, route}) {
       lot: invoiceLineItemRefLot,
       amount: invoiceLineItemRefAmount
     }])
+
+    await AsyncStorage.setItem(`LOT_NUM_${invoiceLineItemRefIdentifier}`, invoiceLineItemRefLot)
 
     setInvoiceAddMode(false)
     setInvoiceLineItemRefIdentifier('')
@@ -499,7 +518,11 @@ export default function InvoicesComponent({navigation, route}) {
       const res = await API.post('/admin/invoice/actions/topup', {identifier: invoice.distributor.identifier, invoiceId: invoice.identifier});
       if (res.isError) throw 'error';
 
-      setTopUps([topups, ...invoice.identifier])
+      setTopUps([...topups, invoice.identifier])
+
+      setTimeout(() => {
+        console.log(topups)
+      }, 5000)
       setIsLoading(false);
     } catch (e) {
       setIsLoading(false);
@@ -1475,7 +1498,16 @@ export default function InvoicesComponent({navigation, route}) {
                 {
                   invoiceAddSearchMode &&
                   <>
-                    <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Lot Number #</Text>
+                    <View style={[styles.fullWidth, styles.defaultRowContainer]}>
+                      <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Lot Number #</Text>
+                      <View style={styles.spacer}></View>
+                      {
+                        recentBatchNumber !== "" &&
+                        <Pressable onPress={() => {setInvoiceLineItemRefLot(recentBatchNumber); setRecentBatchNumber('')}}>
+                          <Text style={[styles.baseText, styles.bold, styles.primary]}>{recentBatchNumber}</Text>
+                        </Pressable>
+                      }
+                    </View>
                     <TextInput
                       placeholderTextColor="#888"
                       style={[{marginTop: 10,  marginBottom: 20, width: '100%'}, styles.baseInput]}
