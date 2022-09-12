@@ -430,6 +430,27 @@ export default function Distributors({navigation}) {
                 <View style={[styles.defaultColumnContainer, styles.fullWidth, styles.fullSCContent, {borderBottomRightRadius: 0, borderBottomLeftRadius: 0, backgroundColor: "#FCFCFC"}]}>
                   <Text style={[styles.tinyText, styles.bold, {opacity: 0.5}, styles.center]}>{distributors[routeMode.current].address}</Text>
                   <Text numberOfLines={1} style={[styles.subHeaderText, styles.nunitoText, styles.tertiary, {marginTop: 20, marginBottom: 20}]}>{distributors[routeMode.current].company}</Text>
+                  {
+                    distributors[routeMode.current].issues && distributors[routeMode.current].issues.length > 0 &&
+                    <View style={[styles.fullWidth, {flex: 1}]}>
+                      {
+                        distributors[routeMode.current].issues.filter(issue => issue.type === "INVOICE" && issue.status === "OVERDUE").length > 0 &&
+                        <>
+                          <View style={[styles.cardAttentive, {backgroundColor: '#FF3131'}]}>
+                            <Text style={{color: 'white'}}>{distributors[routeMode.current].issues.filter(issue => issue.type === "INVOICE" && issue.status === "OVERDUE").length} Overdue Invoice(s)</Text>
+                          </View>
+                        </>
+                      }
+                      {
+                        distributors[routeMode.current].issues.filter(issue => issue.type === "INVOICE" && issue.status === "PENDING").length > 0 &&
+                        <>
+                          <View style={[styles.cardAttentive, {backgroundColor: '#FF6347'}]}>
+                            <Text style={{color: 'white'}}>{distributors[routeMode.current].issues.filter(issue => issue.type === "INVOICE" && issue.status === "PENDING").length} Pending Invoice(s)</Text>
+                          </View>
+                        </>
+                      }
+                    </View>
+                  }
                 </View>
                 <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {padding: 10, backgroundColor: '#F9F9F9', borderBottomLeftRadius: 10, borderBottomRightRadius: 10}]}>
                   {
