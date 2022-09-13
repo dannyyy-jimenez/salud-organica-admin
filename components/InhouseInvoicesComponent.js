@@ -281,8 +281,31 @@ export default function InvoicesComponent({navigation, route}) {
         return;
       }
 
-      Location.watchPositionAsync({}, (location) => {
+      Location.watchPositionAsync({distanceInterval: 50}, (location) => {
         setLocation(location);
+
+        let dists = distributors.slice().map(distributor => new Distributor(distributor.identifier, distributor.company, distributor.managers, distributor.address, distributor.lines, distributor.lat, distributor.lng, distributor.status, distributor.route, location.coords)).sort((a, b) => {
+          let letterA = a.route.split("")[0]
+          let letterB = b.route.split("")[0]
+
+          if (letterA  === letterB) {
+            if (parseInt(a.route.slice(1)) > parseInt(b.route.slice(1))) return 1
+            if (parseInt(a.route.slice(1)) < parseInt(b.route.slice(1))) return -1
+
+            return 0
+          } else  {
+            if (letterA > letterB) return 1
+            if (letterA  < letterB) return -1
+
+            return 0
+          }
+          return 0
+        })
+
+        setDistributors(dists);
+        if (dists[0].distance < 0.160934) {
+          setPromptInvoiceForNearestDist(true)
+        }
       });
     })();
 
@@ -712,7 +735,7 @@ export default function InvoicesComponent({navigation, route}) {
 
                   <View style={[styles.fullWidth, styles.defaultColumnContainer]}>
                     <Text style={[styles.tinyText, styles.bold, styles.secondary, styles.opaque]}>Amount</Text>
-                    <Text style={[styles.headerText, styles.bold, styles.secondary, {marginTop: 5}]}>${overdue.reduce((total, next) => total + next, 0).toLocaleString()}</Text>
+                    <Text style={[styles.headerText, styles.bold, styles.secondary, {marginTop: 5}]}>${overdue.reduce((total, next) => total + next, 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
                   </View>
 
                   <TouchableOpacity onPress={() => setSearch('OVRD')} style={[styles.marginWidth, styles.center, styles.defaultRowContainer, {padding: 10, borderRadius: 5, backgroundColor: "#FF6565"}]}>
@@ -728,7 +751,7 @@ export default function InvoicesComponent({navigation, route}) {
 
                   <View style={[styles.fullWidth, styles.defaultColumnContainer]}>
                     <Text style={[styles.tinyText, styles.bold, styles.secondary, styles.opaque]}>Amount</Text>
-                    <Text style={[styles.headerText, styles.bold, styles.secondary, {marginTop: 5}]}>${pending.reduce((total, next) => total + next, 0).toLocaleString()}</Text>
+                    <Text style={[styles.headerText, styles.bold, styles.secondary, {marginTop: 5}]}>${pending.reduce((total, next) => total + next, 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
                   </View>
 
                   <TouchableOpacity onPress={() => setSearch('PNDNG')} style={[styles.marginWidth, styles.center, styles.defaultRowContainer, {padding: 10, borderRadius: 5, backgroundColor: "#FFA07A"}]}>
@@ -744,7 +767,7 @@ export default function InvoicesComponent({navigation, route}) {
 
                   <View style={[styles.fullWidth, styles.defaultColumnContainer]}>
                     <Text style={[styles.tinyText, styles.bold, styles.secondary, styles.opaque]}>Amount</Text>
-                    <Text style={[styles.headerText, styles.bold, styles.secondary, {marginTop: 5}]}>${paid.reduce((total, next) => total + next, 0).toLocaleString()}</Text>
+                    <Text style={[styles.headerText, styles.bold, styles.secondary, {marginTop: 5}]}>${paid.reduce((total, next) => total + next, 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
                   </View>
 
                   <TouchableOpacity onPress={() => setSearch('PAID')} style={[styles.marginWidth, styles.center, styles.defaultRowContainer, {padding: 10, borderRadius: 5, backgroundColor: "#40BA91"}]}>
@@ -948,7 +971,7 @@ export default function InvoicesComponent({navigation, route}) {
                 <View style={styles.defaultColumnContainer, styles.fullWidth, styles.fullSCContent}>
                   <View style={[styles.defaultRowContainer, styles.fullWidth]}>
                     <View style={[styles.defaultColumnContainer]}>
-                      <Text numberOfLines={1} style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary, {marginBottom: 2}]}>Balance: ${invoice.balance.toFixed(2)}</Text>
+                      <Text numberOfLines={1} style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary, {marginBottom: 2}]}>Balance: ${invoice.balance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
                     </View>
                     <View style={styles.spacer}></View>
                     <View style={[styles.defaultColumnContainer]}>
@@ -956,7 +979,7 @@ export default function InvoicesComponent({navigation, route}) {
                     </View>
                   </View>
                   <View style={[styles.spacer, styles.defaultColumnContainer, styles.fullWidth, {alignItems: 'flex-start', marginTop: 10}]}>
-                    <Text style={[styles.tinyText, styles.primary, styles.bold, styles.center]}>Total: ${invoice.total.toFixed(2)}</Text>
+                    <Text style={[styles.tinyText, styles.primary, styles.bold, styles.center]}>Total: ${invoice.total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
                     {
                       !invoice.paid && invoice.dueDays > 1 &&
                       <Text style={[styles.tinyText, styles.primary, styles.bold, styles.center, {marginTop: 5}]}>Due in {invoice.dueDays} days</Text>
@@ -1162,7 +1185,7 @@ export default function InvoicesComponent({navigation, route}) {
             <View style={styles.defaultColumnContainer, styles.fullWidth, {backgroundColor: 'white'}}>
               <View style={[styles.defaultRowContainer, styles.fullWidth]}>
                 <View style={[styles.defaultColumnContainer]}>
-                  <Text numberOfLines={1} style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary, {marginBottom: 2}]}>Balance: ${scopeInvoice.balance.toFixed(2)}</Text>
+                  <Text numberOfLines={1} style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary, {marginBottom: 2}]}>Balance: ${scopeInvoice.balance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
                 </View>
                 <View style={styles.spacer}></View>
                 <View style={[styles.defaultColumnContainer]}>
@@ -1170,7 +1193,7 @@ export default function InvoicesComponent({navigation, route}) {
                 </View>
               </View>
               <View style={[styles.defaultColumnContainer, styles.fullWidth, {alignItems: 'flex-start', marginTop: 10}]}>
-                <Text style={[styles.tinyText, styles.primary, styles.bold, styles.center]}>Total: ${scopeInvoice.total.toFixed(2)}</Text>
+                <Text style={[styles.tinyText, styles.primary, styles.bold, styles.center]}>Total: ${scopeInvoice.total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
               </View>
               <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {marginTop: 30, marginBottom: 20}]}>
                 {
@@ -1241,7 +1264,7 @@ export default function InvoicesComponent({navigation, route}) {
                   </Text>
                   <View style={[styles.spacer]}></View>
                   <Pressable onPress={() => setInvoicePaymentAmount(scopeInvoice.balance.toFixed(2))}>
-                    <Text style={[styles.baseText, styles.bold, styles.primary]}>FULL ${scopeInvoice.balance.toFixed(2)}</Text>
+                    <Text style={[styles.baseText, styles.bold, styles.primary]}>FULL ${scopeInvoice.balance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
                   </Pressable>
                 </View>
                 <TextInput
@@ -1283,7 +1306,7 @@ export default function InvoicesComponent({navigation, route}) {
                   </>
                 }
 
-                <Text style={[styles.baseText, styles.bold, styles.marginWidth, styles.tertiary, {marginTop: 20}]}>Pending Balance: ${(scopeInvoice.balance - (isNaN(parseFloat(invoicePaymentAmount)) ? 0 : parseFloat(invoicePaymentAmount))).toLocaleString()}</Text>
+                <Text style={[styles.baseText, styles.bold, styles.marginWidth, styles.tertiary, {marginTop: 20}]}>Pending Balance: ${(scopeInvoice.balance - (isNaN(parseFloat(invoicePaymentAmount)) ? 0 : parseFloat(invoicePaymentAmount))).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
 
                 {
                   invoicePaymentAmount !== "" && (invoicePaymentIsCash || (!invoicePaymentIsCash && invoicePaymentRef !== "")) &&
