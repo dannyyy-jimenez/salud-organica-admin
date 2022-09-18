@@ -302,9 +302,11 @@ export default function InvoicesComponent({navigation, route}) {
           return 0
         })
 
-        setDistributors(dists);
-        if (dists[0].distance < 0.160934) {
-          setPromptInvoiceForNearestDist(true)
+        if (dists.length > 0) {
+          setDistributors(dists);
+          if (dists[0].distance < 0.160934) {
+            setPromptInvoiceForNearestDist(true)
+          }
         }
       });
     })();
@@ -543,9 +545,6 @@ export default function InvoicesComponent({navigation, route}) {
 
       setTopUps([...topups, invoice.identifier])
 
-      setTimeout(() => {
-        console.log(topups)
-      }, 5000)
       setIsLoading(false);
     } catch (e) {
       setIsLoading(false);
@@ -579,7 +578,6 @@ export default function InvoicesComponent({navigation, route}) {
 
     try {
       const res = await API.post('/admin/invoice/actions/payment', {identifier: scopeInvoice.identifier, amount: invoicePaymentAmount, memo: invoicePaymentMemo, type: invoicePaymentIsCash ? 'CASH' : 'CHECK', ref: invoicePaymentRef});
-      console.log(res)
       if (res.isError) throw 'error';
 
       load()
