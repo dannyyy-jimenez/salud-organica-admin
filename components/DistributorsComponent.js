@@ -200,11 +200,9 @@ export default function Distributors({navigation}) {
         return;
       }
 
-      Location.watchPositionAsync({distanceInterval: 50}, (location) => {
+      Location.watchPositionAsync({distanceInterval: 1}, (location) => {
         if (search !== "") return;
         setLocation(location);
-
-        load(location, false)
       });
     })();
   }, []);
@@ -423,8 +421,8 @@ export default function Distributors({navigation}) {
           </View>
         }
         {
-          routeMode.active && routeMode.current < routeMode.total &&
-          <View style={[styles.defaultTabScrollContent, {alignItems: 'flex-start', justifyContent: 'flex-start', width: '90%', marginLeft: '5%', paddingBottom: 70}]}>
+          routeMode.active && routeMode.current < routeMode.total && distributors[routeMode.current] &&
+          <View style={[{alignItems: 'flex-start', justifyContent: 'flex-start', width: '90%', marginLeft: '5%', paddingBottom: 70, height: '100%'}]}>
             {
               <TouchableOpacity key={distributors[routeMode.current].identifier} onPress={() => navigation.navigate('DistributorView', {identifier: distributors[routeMode.current].identifier, company: distributors[routeMode.current].company})} style={[styles.fullStoreCard, styles.elevated]}>
                 <View style={[styles.defaultColumnContainer, styles.fullWidth, styles.fullSCContent, {borderBottomRightRadius: 0, borderBottomLeftRadius: 0, backgroundColor: "#FCFCFC"}]}>
@@ -432,7 +430,7 @@ export default function Distributors({navigation}) {
                   <Text numberOfLines={1} style={[styles.subHeaderText, styles.nunitoText, styles.tertiary, {marginTop: 20, marginBottom: 20}]}>{distributors[routeMode.current].company}</Text>
                   {
                     distributors[routeMode.current].issues && distributors[routeMode.current].issues.length > 0 &&
-                    <View style={[styles.fullWidth, {flex: 1}]}>
+                    <View style={[styles.defaultColumnContainer, styles.fullWidth, {position: 'relative'}]}>
                       {
                         distributors[routeMode.current].issues.filter(issue => issue.type === "INVOICE" && issue.status === "OVERDUE").length > 0 &&
                         <>

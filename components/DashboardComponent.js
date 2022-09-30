@@ -75,10 +75,17 @@ export default function DashboardComponent({navigation}) {
         trendChangesObj['google'] = parseInt(((gTrendValues[gTrendValuesSize - 1] / gTrendValues[gTrendValuesSize - 2]) - 1) * 100)
       }
 
-      if (res.data._trends.visits && Object.keys(res.data._trends.visits).length > 2) {
-        let vTrendValues = Object.values(res.data._trends.visits)
-        let vTrendValuesSize = Object.values(res.data._trends.visits).length
-        trendChangesObj['visits'] = parseInt(((vTrendValues[vTrendValuesSize - 1] / vTrendValues[vTrendValuesSize - 2]) - 1) * 100)
+      if (res.data._trends.visits) {
+        let sites = Object.keys(res.data._trends.visits);
+        trendChangesObj['visits'] = {}
+
+        for (let site of sites) {
+          if (Object.keys(res.data._trends.visits[site]).length > 2) {
+            let vTrendValues = Object.values(res.data._trends.visits[site])
+            let vTrendValuesSize = Object.values(res.data._trends.visits[site]).length
+            trendChangesObj['visits'][site] = parseInt(((vTrendValues[vTrendValuesSize - 1] / vTrendValues[vTrendValuesSize - 2]) - 1) * 100)
+          }
+        }
       }
 
       setTrendChanges(trendChangesObj)
@@ -534,58 +541,66 @@ export default function DashboardComponent({navigation}) {
               }
 
               {
-                trends?.visits && Object.keys(trends.visits).length > 2 &&
-                <View style={[styles.analyticCardF, styles.elevated, {backgroundColor: '#FAFAFA'}]}>
-                  <Text style={[styles.subHeaderText, styles.bold, {position: 'absolute', right: 10, top: 10}, trendChanges.visits > 0 ? styles.primary : {color: '#FF3131'}]}>+{trendChanges.visits}%</Text>
-                  <Text style={[styles.subHeaderText, styles.bold, styles.tertiary]}>Website Visits Trend</Text>
-                  <Text style={[styles.tinyText, styles.bold, styles.tertiary, styles.opaque, {marginTop: 5, marginBottom: 5}]}>laherenciadelabuelo.com</Text>
-
-                  <LineChart
-                    data={{
-                      labels: Object.keys(trends.visits),
-                      datasets: [
+                trends?.visits && Object.keys(trends.visits).map((site) => {
+                  if (Object.keys(trends.visits[site]).length > 2) {
+                    return (
+                      <View style={[styles.analyticCardF, styles.elevated, {backgroundColor: '#FAFAFA'}]}>
                         {
-                          data: Object.values(trends.visits)
+                          trendChanges.visits && trendChanges.visits[site] &&
+                          <Text style={[styles.subHeaderText, styles.bold, {position: 'absolute', right: 10, top: 10}, trendChanges?.visits[site] > 0 ? styles.primary : {color: '#FF3131'}]}>{trendChanges?.visits[site] > 0 ? "+" : ""}{trendChanges?.visits[site]}%</Text>
                         }
-                      ]
-                    }}
-                    width={Dimensions.get("window").width * 1} // from react-native
-                    height={170}
-                    yAxisLabel=""
-                    yAxisSuffix=""
-                    yAxisInterval={1} // optional, defaults to 1
-                    withShadow={false}
-                    withInnerLines={false}
-                    withOuterLines={true}
-                    withVerticalLines={false}
-                    withHorizontalLines={false}
-                    withHorizontalLabels={false}
-                    chartConfig={{
-                      backgroundGradientFrom: "#fff",
-                      backgroundGradientTo: "#fff",
-                      backgroundGradientFromOpacity: 0,
-                      backgroundGradientToOpacity: 0,
-                      fillShadowGradientFromOpacity: 0,
-                      fillShadowGradientToOpacity: 1,
-                      propsForBackgroundLines: [{
-                        fillOpacity: 1,
-                      }],
-                      decimalPlaces: 0, // optional, defaults to 2dp
-                      color: (opacity = 1) => `rgba(17, 17, 17, ${opacity})`,
-                      labelColor: (opacity = 1) => `rgba(17, 17, 17, ${opacity})`
-                    }}
-                    formatYLabel={(c) => {
-                      return parseFloat(c).toLocaleString()
-                    }}
-                    bezier
-                    style={{
-                      padding: 0,
-                      margin: 0,
-                      marginTop: 10,
-                      left: -40
-                    }}
-                  />
-                </View>
+                        <Text style={[styles.subHeaderText, styles.bold, styles.tertiary]}>Website Visits Trend</Text>
+                        <Text style={[styles.tinyText, styles.bold, styles.tertiary, styles.opaque, {marginTop: 5, marginBottom: 5}]}>{site}</Text>
+
+                        <LineChart
+                          data={{
+                            labels: Object.keys(trends.visits[site]),
+                            datasets: [
+                              {
+                                data: Object.values(trends.visits[site])
+                              }
+                            ]
+                          }}
+                          width={Dimensions.get("window").width * 1} // from react-native
+                          height={170}
+                          yAxisLabel=""
+                          yAxisSuffix=""
+                          yAxisInterval={1} // optional, defaults to 1
+                          withShadow={false}
+                          withInnerLines={false}
+                          withOuterLines={true}
+                          withVerticalLines={false}
+                          withHorizontalLines={false}
+                          withHorizontalLabels={false}
+                          chartConfig={{
+                            backgroundGradientFrom: "#fff",
+                            backgroundGradientTo: "#fff",
+                            backgroundGradientFromOpacity: 0,
+                            backgroundGradientToOpacity: 0,
+                            fillShadowGradientFromOpacity: 0,
+                            fillShadowGradientToOpacity: 1,
+                            propsForBackgroundLines: [{
+                              fillOpacity: 1,
+                            }],
+                            decimalPlaces: 0, // optional, defaults to 2dp
+                            color: (opacity = 1) => `rgba(17, 17, 17, ${opacity})`,
+                            labelColor: (opacity = 1) => `rgba(17, 17, 17, ${opacity})`
+                          }}
+                          formatYLabel={(c) => {
+                            return parseFloat(c).toLocaleString()
+                          }}
+                          bezier
+                          style={{
+                            padding: 0,
+                            margin: 0,
+                            marginTop: 10,
+                            left: -40
+                          }}
+                        />
+                      </View>
+                    )
+                  }
+                })
               }
             </ScrollView>
           </>
