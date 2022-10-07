@@ -11,6 +11,7 @@ import {
 import Api from '../Api'
 import moment from 'moment';
 moment().format();
+import { FormatProductNameLong } from './Globals'
 
 let stylesheet = require('../Styles')
 let styles = stylesheet.Styles;
@@ -120,14 +121,6 @@ export default function DashboardComponent({navigation}) {
         authenticated: false
       })
     }
-  }
-
-  const FormatProductName = (identifier) => {
-    if (identifier == 'rubbing') return 'Artisanal Rubbing Alcohol'
-    if (identifier == 'cream') return 'Topical Cream'
-    if (identifier == 'rollon') return 'Artisanal Alcohol Roll- On'
-
-    return identifier;
   }
 
   React.useEffect(() => {
@@ -278,12 +271,12 @@ export default function DashboardComponent({navigation}) {
                         <View style={[styles.spacer]}></View>
                         <Image  style={{height: 60,  width: 60, resizeMode: 'contain', marginRight: 10}} source={{uri: 'https://res.cloudinary.com/cbd-salud-sativa/image/upload/v1649685403/salud-organica-logicon.png'}}></Image>
                       </View>
-                      <View style={[styles.defaultColumnContainer, styles.fullWidth, {marginTop: 20, marginBottom: 15, padding: 10}]}>
+                      <View style={[styles.defaultColumnContainer, styles.fullWidth, styles.spacer, {marginTop: 20, marginBottom: 15, padding: 10}]}>
                         {
                           invoice.line.map(line => {
                             return (
                               <View style={[styles.defaultRowContainer, styles.fullWidth, {marginTop: 5, marginBottom: 5}]}>
-                                <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{FormatProductName(line.product.identifier)}</Text>
+                                <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{FormatProductNameLong(line.product)}</Text>
                                 <View style={styles.spacer}></View>
                                 <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{line.quantity} x ${line.rate}</Text>
                               </View>
@@ -372,7 +365,7 @@ export default function DashboardComponent({navigation}) {
                           invoice.line.map(line => {
                             return (
                               <View style={[styles.defaultRowContainer, styles.fullWidth, {marginTop: 5, marginBottom: 5}]}>
-                                <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{FormatProductName(line.product.identifier)}</Text>
+                                <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{FormatProductNameLong(line.product)}</Text>
                                 <View style={styles.spacer}></View>
                                 <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{line.quantity} x ${line.rate}</Text>
                               </View>

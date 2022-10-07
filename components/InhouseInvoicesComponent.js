@@ -23,6 +23,7 @@ import {
   ProgressChart
 } from "react-native-chart-kit";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { FormatProductNameLong } from './Globals'
 
 let stylesheet = require('../Styles')
 let styles = stylesheet.Styles;
@@ -108,7 +109,7 @@ export default function InvoicesComponent({navigation, route}) {
 
   // stats
 
-  const goals = [1000, 4000, 15000]
+  const goals = [4000, 16000, 192000]
   const [dailySales, setDailySales] = React.useState(0);
   const [weeklySales, setWeelySales] = React.useState(0);
   const [monthlySales, setMonthySales] = React.useState(0);
@@ -153,7 +154,7 @@ export default function InvoicesComponent({navigation, route}) {
       setInvoices(res.data.invoices);
       setDefaultInvoices(res.data.invoices)
       setDistributors(dists);
-      if (dists[0].distance < 0.160934) {
+      if (dists[0].distance < 1) {
         setPromptInvoiceForNearestDist(true)
       }
       setProducts(res.data.products);
@@ -198,42 +199,44 @@ export default function InvoicesComponent({navigation, route}) {
   }
 
   const AnalyzeInvoices = (data) => {
-    let weeklyLabels = []
-    let dailyLabels = []
-    let monthlyLabels = []
-    let weekly = []
-    let daily = []
-    let monthly = []
+    let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    let daysFormat = {
+      "-1": "Sun",
+      "0": "Mon",
+      "1": "Tue",
+      "2": "Wed",
+      "3": "Thu",
+      "4": "Fri",
+      "5": "Sat"
+    }
+    let days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    let weeks = [1, 2, 3, 4, 5]
+    let today = moment()
+    let weekOfMonth = (today.week() - ((today.month() + 1) * 4))
+    let weeklyLabels = weeks.slice(0, weekOfMonth)
+    let dailyLabels = days.slice(0, today.day())
+    let monthlyLabels = months.slice(0, today.month() + 1)
+    let weekly = Array(weeklyLabels.length).fill(0)
+    let daily = Array(dailyLabels.length).fill(0)
+    let monthly = Array(monthlyLabels.length).fill(0)
     let overdue = []
     let pending = []
     let paid = []
 
     for (let invoice of data.slice().reverse()) {
-      if (moment(invoice.created).isSame(new Date(), 'day')) {
-        if (dailyLabels.includes(moment(invoice.created).format('HH:MM'))) {
-          daily[dailyLabels.indexOf(moment(invoice.created).format('HH:MM'))] += invoice.total
-        } else {
-          dailyLabels.push(moment(invoice.created).format('HH:MM'))
-          daily.push(invoice.total)
-        }
+
+      if (moment(invoice.created).isSame(today, 'week')) {
+        daily[dailyLabels.indexOf(daysFormat[moment(invoice.created).day() - 1])] += invoice.total
       }
 
-      if (moment(invoice.created).isSame(new Date(), 'week')) {
-        if (weeklyLabels.includes(moment(invoice.created).format('ddd'))) {
-          weekly[weeklyLabels.indexOf(moment(invoice.created).format('ddd'))] += invoice.total
-        } else {
-          weeklyLabels.push(moment(invoice.created).format('ddd'))
-          weekly.push(invoice.total)
-        }
+
+      if (moment(invoice.created).isSame(today, 'month')) {
+        let invoiceWeekOfMonth = moment(invoice.created).week() - ((today.month() + 1) * 4)
+        weekly[invoiceWeekOfMonth - 1] += invoice.total
       }
 
-      if (moment(invoice.created).isSame(new Date(), 'month')) {
-        if (monthlyLabels.includes(moment(invoice.created).date())) {
-          monthly[monthlyLabels.indexOf(moment(invoice.created).date())] += invoice.total
-        } else {
-          monthlyLabels.push(moment(invoice.created).date())
-          monthly.push(invoice.total)
-        }
+      if (moment(invoice.created).isSame(today, 'year')) {
+        monthly[moment(invoice.created).month()] += invoice.total
       }
 
       if (invoice.paid) {
@@ -249,14 +252,14 @@ export default function InvoicesComponent({navigation, route}) {
       }
 
     }
-    setWeelySales(weekly)
-    setDailySales(daily)
-    setMonthySales(monthly.reduce((total, next) => total + next, 0))
+    setDailySales(daily.reduce((total, next) => total += next, 0))
+    setWeelySales(weekly.reduce((total, next) => total += next, 0))
+    setMonthySales(monthly.reduce((total, next) => total += next, 0))
 
     setInvoicesProgress({
       "labels": {
         daily: dailyLabels,
-        weekly: weeklySales,
+        weekly: weeklyLabels,
         monthly: monthlyLabels
       },
       "data": {
@@ -304,7 +307,7 @@ export default function InvoicesComponent({navigation, route}) {
 
         if (dists.length > 0) {
           setDistributors(dists);
-          if (dists[0].distance < 0.160934) {
+          if (dists[0].distance < 1) {
             setPromptInvoiceForNearestDist(true)
           }
         }
@@ -390,19 +393,12 @@ export default function InvoicesComponent({navigation, route}) {
     if (invoiceLineItemRefIdentifier == "" || invoiceLineItemRefCost !== "") return;
 
     setInvoiceLineItemRefCost(products.find(p => p.identifier === invoiceLineItemRefIdentifier).distributorPrice.toFixed(2))
+    setInvoiceLineItemRefAmount(products.find(p => p.identifier === invoiceLineItemRefIdentifier).distributorPrice * parseInt(invoiceLineItemRefQty))
     getRecentBatch(invoiceLineItemRefIdentifier).then(lot => {
       setRecentBatchNumber(lot)
     })
 
   }, [invoiceLineItemRefIdentifier])
-
-  const FormatProductName = (identifier) => {
-    if (identifier == 'rubbing') return 'Artisanal Rubbing Alcohol'
-    if (identifier == 'cream') return 'Topical Cream'
-    if (identifier == 'rollon') return 'Artisanal Alcohol Roll- On'
-
-    return identifier;
-  }
 
   const FormatIdentifier = (identifier) => {
     if (identifier == 'topical_cream') return 'cream'
@@ -696,7 +692,7 @@ export default function InvoicesComponent({navigation, route}) {
           </>
         }
       </View>
-      <ScrollView contentOffset={{x: 0, y: 800}} style={styles.defaultTabScrollContent} contentContainerStyle={{alignItems: 'center', justifyContent: 'flex-start', width: '100%', paddingBottom: 70}} refreshControl={<RefreshControl refreshing={isLoading} tintColor={"white"} colors={[stylesheet.Primary]} onRefresh={load} />}>
+      <ScrollView style={styles.defaultTabScrollContent} contentContainerStyle={{alignItems: 'center', justifyContent: 'flex-start', width: '100%', paddingBottom: 70}} refreshControl={<RefreshControl refreshing={isLoading} tintColor={"white"} colors={[stylesheet.Primary]} onRefresh={load} />}>
         {
           isLoading &&
           <LottieView
@@ -725,7 +721,7 @@ export default function InvoicesComponent({navigation, route}) {
               onChangeText={(text) => setSearch(text)}
             />
 
-            <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={[styles.marginWidth, styles.justifyCenter, {marginTop: 40, marginBottom: 40, height: 'auto'}]} contentContainerStyle={{flexGrow: 1}}>
+            <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={[styles.marginWidth, styles.justifyCenter, {marginTop: 20, marginBottom: 20, height: 'auto'}]} contentContainerStyle={{flexGrow: 1}}>
               {
                 overdue.length > 0 &&
                 <View style={[styles.analyticCard, styles.elevated, {backgroundColor: '#FF3131'}]}>
@@ -775,14 +771,20 @@ export default function InvoicesComponent({navigation, route}) {
               }
             </ScrollView>
 
-            <View style={[styles.defaultRowContainer, styles.marginWidth, styles.justifyCenter, {marginTop: 20, height: 'auto'}]}>
+            <ScrollView decelerationRate={0} snapToInterval={Dimensions.get("window").width * 0.94} snapToAlignment={"center"} horizontal={true} showsHorizontalScrollIndicator={false} style={[styles.insetWidth, styles.justifyCenter, {marginTop: 20, marginBottom: 20, height: 'auto'}]} contentContainerStyle={{flexGrow: 1}}>
 
               {
-                dailySales > 0 && invoicesProgress.labels.daily.length > 1 &&
+                invoicesProgress.labels.daily && !invoicesProgress.data.daily.every(item => item === 0) &&
                 <View style={[styles.analyticCardF, styles.elevated, {backgroundColor: '#FAF0E6'}]}>
-                  <Text style={[styles.subHeaderText, styles.bold, styles.tertiary]}>Daily Progress - ${goals[0].toLocaleString()}</Text>
-                  <Text style={[styles.tinyText, styles.bold, styles.tertiary, styles.opaque, {marginTop: 5, marginBottom: 5}]}>{((dailySales / goals[0]) * 100).toFixed(2)}% of the way there</Text>
-
+                  <Text style={[styles.subHeaderText, styles.bold, styles.tertiary]}>This Week's Progress - ${dailySales.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
+                  {
+                    dailySales >= goals[0] &&
+                    <Text style={[styles.tinyText, styles.bold, styles.tertiary, styles.opaque, {marginTop: 5, marginBottom: 5}]}>${goals[0].toLocaleString()} Weekly Goal Completed 🥳</Text>
+                  }
+                  {
+                    dailySales < goals[0] &&
+                    <Text style={[styles.tinyText, styles.bold, styles.tertiary, styles.opaque, {marginTop: 5, marginBottom: 5}]}>{((dailySales / goals[0]) * 100).toFixed(2)}% of the ${goals[0].toLocaleString()} goal</Text>
+                  }
                   <LineChart
                     data={{
                       labels: invoicesProgress.labels.daily,
@@ -792,7 +794,7 @@ export default function InvoicesComponent({navigation, route}) {
                         }
                       ]
                     }}
-                    width={Dimensions.get("window").width * 1} // from react-native
+                    width={Dimensions.get("window").width * 0.94} // from react-native
                     height={170}
                     yAxisLabel=""
                     yAxisSuffix=""
@@ -817,25 +819,31 @@ export default function InvoicesComponent({navigation, route}) {
                       labelColor: (opacity = 1) => `rgba(33, 33, 33, ${opacity})`
                     }}
                     formatYLabel={(c) => {
-                      return parseFloat(c).toLocaleString()
+                      return "$" + c.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
                     }}
                     bezier
                     style={{
                       padding: 0,
                       margin: 0,
                       marginTop: 10,
-                      left: -20
+                      left: 0
                     }}
                   />
                 </View>
               }
 
               {
-                weeklySales > 0 && invoicesProgress.labels.weekly.length > 1 &&
+                invoicesProgress.labels.weekly && invoicesProgress.labels.weekly.length > 1 && !invoicesProgress.data.weekly.every(item => item === 0) &&
                 <View style={[styles.analyticCardF, styles.elevated, {backgroundColor: '#FAF0E6'}]}>
-                  <Text style={[styles.subHeaderText, styles.bold, styles.tertiary]}>Weekly Progress - ${goals[1].toLocaleString()}</Text>
-                  <Text style={[styles.tinyText, styles.bold, styles.tertiary, styles.opaque, {marginTop: 5, marginBottom: 5}]}>{((weeklySales / goals[1]) * 100).toFixed(2)}% of the way there</Text>
-
+                  <Text style={[styles.subHeaderText, styles.bold, styles.tertiary]}>This Month's Progress - ${weeklySales.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
+                  {
+                    weeklySales >= goals[1] &&
+                    <Text style={[styles.tinyText, styles.bold, styles.tertiary, styles.opaque, {marginTop: 5, marginBottom: 5}]}>${goals[1].toLocaleString()} Monthly Goal Completed 🥳</Text>
+                  }
+                  {
+                    weeklySales < goals[1] &&
+                    <Text style={[styles.tinyText, styles.bold, styles.tertiary, styles.opaque, {marginTop: 5, marginBottom: 5}]}>{((weeklySales / goals[1]) * 100).toFixed(2)}% of the ${goals[1].toLocaleString()} goal</Text>
+                  }
                   <LineChart
                     data={{
                       labels: invoicesProgress.labels.weekly,
@@ -845,7 +853,7 @@ export default function InvoicesComponent({navigation, route}) {
                         }
                       ]
                     }}
-                    width={Dimensions.get("window").width * 1} // from react-native
+                    width={Dimensions.get("window").width * 0.94} // from react-native
                     height={170}
                     yAxisLabel=""
                     yAxisSuffix=""
@@ -870,35 +878,41 @@ export default function InvoicesComponent({navigation, route}) {
                       labelColor: (opacity = 1) => `rgba(33, 33, 33, ${opacity})`
                     }}
                     formatYLabel={(c) => {
-                      return parseFloat(c).toLocaleString()
+                      return "$" + c.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
                     }}
                     bezier
                     style={{
                       padding: 0,
                       margin: 0,
                       marginTop: 10,
-                      left: -20
+                      left: 0
                     }}
                   />
                 </View>
               }
 
               {
-                monthlySales > 0 && invoicesProgress.labels.monthly.length > 1 &&
+                invoicesProgress.labels.monthly && invoicesProgress.labels.monthly.length > 1 && !invoicesProgress.data.monthly.every(item => item === 0) &&
                 <View style={[styles.analyticCardF, styles.elevated, {backgroundColor: '#FAF0E6'}]}>
-                  <Text style={[styles.subHeaderText, styles.bold, styles.tertiary]}>Monthly Progress - ${goals[2].toLocaleString()}</Text>
-                  <Text style={[styles.tinyText, styles.bold, styles.tertiary, styles.opaque, {marginTop: 5, marginBottom: 5}]}>{((monthlySales / goals[2]) * 100).toFixed(2)}% of the way there</Text>
-
+                  <Text style={[styles.subHeaderText, styles.bold, styles.tertiary]}>This Year's Progress - ${monthlySales.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
+                  {
+                    monthlySales >= goals[2] &&
+                    <Text style={[styles.tinyText, styles.bold, styles.tertiary, styles.opaque, {marginTop: 5, marginBottom: 5}]}>${goals[2].toLocaleString()} Yearly Goal Completed 🥳</Text>
+                  }
+                  {
+                    monthlySales < goals[2] &&
+                    <Text style={[styles.tinyText, styles.bold, styles.tertiary, styles.opaque, {marginTop: 5, marginBottom: 5}]}>{((monthlySales / goals[2]) * 100).toFixed(2)}% of the ${goals[2].toLocaleString()} goal</Text>
+                  }
                   <LineChart
                     data={{
-                      labels: invoicesProgress.labels.monthly.map(w => 'Day ' + w),
+                      labels: invoicesProgress.labels.monthly,
                       datasets: [
                         {
                           data: invoicesProgress.data.monthly
                         }
                       ]
                     }}
-                    width={Dimensions.get("window").width * 1} // from react-native
+                    width={Dimensions.get("window").width * (1 - (0.01 * invoicesProgress.labels.monthly.length))} // from react-native
                     height={170}
                     yAxisLabel=""
                     yAxisSuffix=""
@@ -923,19 +937,19 @@ export default function InvoicesComponent({navigation, route}) {
                       labelColor: (opacity = 1) => `rgba(33, 33, 33, ${opacity})`
                     }}
                     formatYLabel={(c) => {
-                      return parseFloat(c).toLocaleString()
+                      return "$" + c.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
                     }}
                     bezier
                     style={{
                       padding: 0,
                       margin: 0,
                       marginTop: 10,
-                      left: -20
+                      left: -10
                     }}
                   />
                 </View>
               }
-            </View>
+            </ScrollView>
           </>
         }
 
@@ -958,9 +972,20 @@ export default function InvoicesComponent({navigation, route}) {
                     invoice.line.map(line => {
                       return (
                         <View style={[styles.defaultRowContainer, styles.fullWidth, {marginTop: 5, marginBottom: 5}]}>
-                          <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{FormatProductName(line.product.identifier)}</Text>
+                          <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{FormatProductNameLong(line.product)}</Text>
                           <View style={styles.spacer}></View>
-                          <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{line.quantity} x ${line.rate}</Text>
+                          {
+                            line.rate === 0 &&
+                            <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{line.quantity} x FREE</Text>
+                          }
+                          {
+                            line.rate != 0 && line.rate.toString().includes(".") &&
+                            <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{line.quantity} x ${line.rate}</Text>
+                          }
+                          {
+                            line.rate != 0 && !line.rate.toString().includes(".") &&
+                            <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{line.quantity} x ${line.rate / 1000}</Text>
+                          }
                         </View>
                       )
                     })
@@ -1156,9 +1181,20 @@ export default function InvoicesComponent({navigation, route}) {
                 scopeInvoice.line.map(line => {
                   return (
                     <View style={[styles.defaultRowContainer, styles.fullWidth, {marginTop: 5, marginBottom: 5}]}>
-                      <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{FormatProductName(line.product.identifier)} (#{line.lot})</Text>
+                      <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{FormatProductNameLong(line.product)} (#{line.lot})</Text>
                       <View style={styles.spacer}></View>
-                      <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{line.quantity} x ${line.rate}</Text>
+                      {
+                        line.rate === 0 &&
+                        <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{line.quantity} x FREE</Text>
+                      }
+                      {
+                        line.rate != 0 && line.rate.toString().includes(".") &&
+                        <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{line.quantity} x ${line.rate}</Text>
+                      }
+                      {
+                        line.rate != 0 && !line.rate.toString().includes(".") &&
+                        <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{line.quantity} x ${line.rate / 1000}</Text>
+                      }
                     </View>
                   )
                 })
@@ -1407,9 +1443,16 @@ export default function InvoicesComponent({navigation, route}) {
                     return (
                       <>
                         <View style={[styles.defaultRowContainer, styles.fullWidth, {marginTop: 5, marginBottom: 5}]}>
-                          <Text style={[styles.baseText, styles.nunitoText, styles.tertiary]}>{FormatProductName(invoiceLineItem.identifier)}</Text>
+                          <Text style={[styles.baseText, styles.nunitoText, styles.tertiary]}>{FormatProductNameLong(products.find(p => p.identifier === invoiceLineItem.identifier))}</Text>
                           <View style={styles.spacer}></View>
-                          <Text style={[styles.baseText, styles.nunitoText, styles.tertiary]}>{invoiceLineItem.quantity} x ${invoiceLineItem.cost.toLocaleString()}</Text>
+                          {
+                            invoiceLineItem.cost == 0 &&
+                            <Text style={[styles.baseText, styles.nunitoText, styles.tertiary]}>{invoiceLineItem.quantity} x FREE</Text>
+                          }
+                          {
+                            invoiceLineItem.cost != 0 &&
+                            <Text style={[styles.baseText, styles.nunitoText, styles.tertiary]}>{invoiceLineItem.quantity} x ${invoiceLineItem.cost.toLocaleString()}</Text>
+                          }
                           <Pressable onPress={() => onInvoiceLineRemove(idx)} style={{bottom: 2, marginLeft: 10}}>
                             <Feather name="x" size={24} color='red' />
                           </Pressable>
@@ -1447,10 +1490,33 @@ export default function InvoicesComponent({navigation, route}) {
                   invoiceLineItemRefIdentifier != "" && !invoiceAddScanMode && !invoiceAddSearchMode &&
                   <>
                     <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Product</Text>
-                    <Text style={[{marginTop: 10}, styles.baseText, styles.tertiary]}>{FormatProductName(products.find(p => p.identifier === invoiceLineItemRefIdentifier).identifier)}</Text>
+                    <Text style={[{marginTop: 10}, styles.baseText, styles.tertiary]}>{FormatProductNameLong(products.find(p => p.identifier === invoiceLineItemRefIdentifier))}</Text>
                     <Image style={{ marginTop: 20, width: 120, height: 120}} resizeMode="contain" source={{uri: 'https://res.cloudinary.com/cbd-salud-sativa/image/upload/f_auto,q_auto,w_100/' + products.find(p => p.identifier === invoiceLineItemRefIdentifier).shot}}></Image>
                     <Text style={[styles.baseText, styles.bold, styles.tertiary, {marginTop: 20}]}>Lot Number</Text>
                     <Text style={[styles.baseText, styles.tertiary, {marginBottom: 20}]}>#{invoiceLineItemRefLot}</Text>
+                  </>
+                }
+
+                {
+                  invoiceLineItemRefIdentifier == "" && !invoiceAddScanMode && !invoiceAddSearchMode &&
+                  <>
+                    <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Product</Text>
+                    <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {marginTop: 10, marginBottom: 10}]}>
+                      <TouchableOpacity
+                        onPress={() => setInvoiceAddScanMode(true)}
+                        underlayColor='#fff'
+                        style={[{marginLeft: 15, marginRight: 15}, styles.center]}>
+                        <Feather name="maximize" size={26} color={stylesheet.Primary} />
+                        <Text style={{marginTop: 5, fontSize: 12, color: stylesheet.Primary}}>Scan Product</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => setInvoiceAddSearchMode(true)}
+                        underlayColor='#fff'
+                        style={[{marginLeft: 15, marginRight: 15}, styles.center]}>
+                        <Feather name="edit" size={26} color={stylesheet.Primary} />
+                        <Text style={{marginTop: 5, fontSize: 12, color: stylesheet.Primary}}>Pick Item</Text>
+                      </TouchableOpacity>
+                    </View>
                   </>
                 }
 
@@ -1471,7 +1537,13 @@ export default function InvoicesComponent({navigation, route}) {
                       }}
                     />
 
-                    <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Cost</Text>
+                    <View style={[styles.fullWidth, styles.defaultRowContainer]}>
+                      <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Cost</Text>
+                      <View style={styles.spacer}></View>
+                      <Pressable onPress={() => {setInvoiceLineItemRefCost("0"); setInvoiceLineItemRefAmount(0)}}>
+                        <Text style={[styles.baseText, styles.bold, styles.primary]}>FREE</Text>
+                      </Pressable>
+                    </View>
                     <TextInput
                       placeholderTextColor="#888"
                       style={[{marginTop: 5,  marginBottom: 20, width: '100%'}, styles.baseInput]}
@@ -1483,29 +1555,6 @@ export default function InvoicesComponent({navigation, route}) {
                         setInvoiceLineItemRefAmount(parseFloat(text) * parseInt(invoiceLineItemRefQty))
                       }}
                     />
-                  </>
-                }
-
-                {
-                  invoiceLineItemRefIdentifier == "" && !invoiceAddScanMode && !invoiceAddSearchMode &&
-                  <>
-                    <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Product</Text>
-                    <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {marginTop: 30, marginBottom: 10}]}>
-                      <TouchableOpacity
-                        onPress={() => setInvoiceAddScanMode(true)}
-                        underlayColor='#fff'
-                        style={[{marginLeft: 15, marginRight: 15}, styles.center]}>
-                        <Feather name="maximize" size={26} color={stylesheet.Primary} />
-                        <Text style={{marginTop: 5, fontSize: 12, color: stylesheet.Primary}}>Scan Product</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => setInvoiceAddSearchMode(true)}
-                        underlayColor='#fff'
-                        style={[{marginLeft: 15, marginRight: 15}, styles.center]}>
-                        <Feather name="edit" size={26} color={stylesheet.Primary} />
-                        <Text style={{marginTop: 5, fontSize: 12, color: stylesheet.Primary}}>Pick Item</Text>
-                      </TouchableOpacity>
-                    </View>
                   </>
                 }
 
@@ -1544,7 +1593,7 @@ export default function InvoicesComponent({navigation, route}) {
                       {
                         products.filter(p => p.sku).map(product => {
                           return (
-                            <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setInvoiceLineItemRefIdentifier(product.identifier)}}>
+                            <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setInvoiceLineItemRefIdentifier(product.identifier);}}>
                               <Image style={{ width: 120, height: 120, backgroundColor: product.identifier === invoiceLineItemRefIdentifier ? stylesheet.Primary : 'white'}} resizeMode="contain" source={{uri: 'https://res.cloudinary.com/cbd-salud-sativa/image/upload/f_auto,q_auto,w_100/' + product.shot}}></Image>
                             </TouchableOpacity>
                           )

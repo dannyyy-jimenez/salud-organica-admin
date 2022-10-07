@@ -88,7 +88,7 @@ export default function Distributors({navigation}) {
   const [phone, setPhone] = React.useState('')
 
   // section 3
-  const [lines, setLines] = React.useState(['herencia'])
+  const [lines, setLines] = React.useState([])
 
   // section 5
   const [autocompletedAddresses, setAutocompletedAddresses] = React.useState([])
@@ -162,7 +162,7 @@ export default function Distributors({navigation}) {
     setIsLoading(true)
 
     try {
-      let body = {routeLetter: newRouteLetter, managers, companyName, email, phone, address: selectedAddressFreeform, addressLat, addressLng}
+      let body = {routeLetter: newRouteLetter, managers, companyName, email, phone, address: selectedAddressFreeform, addressLat, addressLng, lines}
       const res = await Api.post('/admin/distributors/create', body);
 
       if (res.isError) {
@@ -180,7 +180,7 @@ export default function Distributors({navigation}) {
       setSelectedAddressFreeform('')
       setAddressSearch('')
       setAutocompletedAddresses([])
-      setLines(['herencia'])
+      setLines([])
       setNewSection(0)
       load();
     } catch (e) {

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ScrollView, RefreshControl, StyleSheet, Alert, Text, TextInput, View, Dimensions, Image, TouchableOpacity, SafeAreaView } from 'react-native';
+import { ScrollView, RefreshControl, Pressable, StyleSheet, Alert, Text, TextInput, View, Dimensions, Image, TouchableOpacity, SafeAreaView } from 'react-native';
 import LottieView from 'lottie-react-native';
 import { Feather, Ionicons, Entypo } from '@expo/vector-icons';
 import ActionSheet from "react-native-actions-sheet";
@@ -275,7 +275,7 @@ export default function DistributorComponent({navigation, route}) {
     } else if (rangeEnd) {
       load()
     }
-  }, [rangeEnd])
+  }, [rangeEnd, line])
 
   return (
     <SafeAreaView style={styles.defaultTabContainer}>
@@ -304,7 +304,7 @@ export default function DistributorComponent({navigation, route}) {
       </View>
       <ScrollView style={[styles.defaultTabScrollContent]} contentContainerStyle={{alignItems: 'center', width: '98%', marginLeft: '1%', paddingBottom: Platform.OS === 'android' ? 100 : 60, justifyContent: 'space-between', flexDirection: 'row', flexWrap: 'wrap'}} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={isLoading} tintColor={stylesheet.Primary} colors={[stylesheet.Primary]} onRefresh={load} />}>
         {
-          isLoading &&
+          (isLoading || inventory.length < 1) &&
           <LottieView
               ref={animationRef}
               style={{
@@ -315,73 +315,89 @@ export default function DistributorComponent({navigation, route}) {
             />
         }
         {
-          !isLoading &&
+          !isLoading && inventory.length > 0 &&
           <>
-            <View style={styles.defaultRowContainer, styles.fullWidth}>
+            <View style={[styles.defaultRowContainer, styles.center, styles.wrap, styles.fullWidth]}>
               {
                 lines.includes('herencia') && lines.length > 1 &&
-                <Image style={{height: 80, opacity: line === 'herencia' ? 0.8 : 0.2, margin: 4, resizeMode: 'contain'}} source={{uri: `https://res.cloudinary.com/cbd-salud-sativa/image/upload/v1616525507/characters/abuelo.png`}} />
+                <Pressable onPress={() => setLine('herencia')}>
+                  <Image style={{height: 60, width: 60, opacity: line === 'herencia' ? 0.8 : 0.2, margin: 4, resizeMode: 'contain'}} source={{uri: `https://res.cloudinary.com/cbd-salud-sativa/image/upload/v1616525507/characters/abuelo.png`}} />
+                </Pressable>
+              }
+              {
+                lines.includes('moon') && lines.length > 1 &&
+                <Pressable onPress={() => setLine('moon')}>
+                  <Image style={{height: 60, width: 60, opacity: line === 'moon' ? 0.8 : 0.2, margin: 4, resizeMode: 'contain'}} source={{uri: `https://res.cloudinary.com/cbd-salud-sativa/image/upload/v1616525507/characters/rabbit.png`}} />
+                </Pressable>
               }
               {
                 lines.includes('edgybear') && lines.length > 1 &&
-                <Image style={{height: 80, opacity: line === 'edgybear' ? 0.8 : 0.2, margin: 4, resizeMode: 'contain'}} source={{uri: `https://res.cloudinary.com/cbd-salud-sativa/image/upload/v1616525507/characters/edgybear.png`}} />
+                <Pressable onPress={() => setLine('edgybear')}>
+                  <Image style={{height: 60, width: 60, opacity: line === 'edgybear' ? 0.8 : 0.2, margin: 4, resizeMode: 'contain'}} source={{uri: `https://res.cloudinary.com/cbd-salud-sativa/image/upload/v1616525507/characters/edgybear.png`}} />
+                </Pressable>
               }
             </View>
 
-            <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>Timelapse of Inventory</Text>
-            <LineChart
-              data={{
-                labels: inventory.map(lin => lin.date).reverse().slice(-5),
-                datasets: [
-                  {
-                    data: inventory.map(lin => lin.totalCount).reverse().slice(-5)
-                  }
-                ]
-              }}
-              getDotColor={(dataPoint, dataPointIndex) => {
+            {
+              inventory.length > 1 &&
+              <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>Timelapse of Inventory</Text>
+            }
+            {
+              inventory.length > 1 &&
+              <LineChart
+                data={{
+                  labels: inventory.map(lin => lin.date).reverse().slice(-5),
+                  datasets: [
+                    {
+                      data: inventory.map(lin => lin.totalCount).reverse().slice(-5)
+                    }
+                  ]
+                }}
+                getDotColor={(dataPoint, dataPointIndex) => {
 
-                if (rangeBegin === dataPointIndex || rangeEnd === dataPointIndex) return stylesheet.Primary
+                  if (rangeBegin === dataPointIndex || rangeEnd === dataPointIndex) return stylesheet.Primary
 
-                return "#000"
-              }}
-              onDataPointClick={onDataPointClick}
-              width={Dimensions.get("window").width * 0.98} // from react-native
-              height={220}
-              yAxisLabel=""
-              yAxisSuffix=""
-              yAxisInterval={1} // optional, defaults to 1
-              withShadow={false}
-              withInnerLines={false}
-              withOuterLines={true}
-              withVerticalLines={true}
-              withHorizontalLines={true}
-              chartConfig={{
-                backgroundGradientFrom: "#fff",
-                backgroundGradientTo: "#fff",
-                fillShadowGradientFrom: "blue",
-                fillShadowGradientTo: "red",
-                backgroundGradientFromOpacity: 0,
-                backgroundGradientToOpacity: 1,
-                fillShadowGradientFromOpacity: 0,
-                fillShadowGradientToOpacity: 1,
-                propsForBackgroundLines: [{
-                  fillOpacity: 0.7,
-                }],
-                decimalPlaces: 0, // optional, defaults to 2dp
-                color: (opacity = 1) => `rgba(33, 33, 33, ${opacity})`,
-                labelColor: (opacity = 1) => `rgba(33, 33, 33, ${opacity})`
-              }}
-              bezier
-              style={{
-                padding: 0,
-                margin: 0,
-                marginTop: 40,
-                left: -20
-              }}
-            />
+                  return "#000"
+                }}
+                onDataPointClick={onDataPointClick}
+                width={Dimensions.get("window").width * 0.98} // from react-native
+                height={220}
+                yAxisLabel=""
+                yAxisSuffix=""
+                yAxisInterval={1} // optional, defaults to 1
+                withShadow={false}
+                withInnerLines={false}
+                withOuterLines={true}
+                withVerticalLines={true}
+                withHorizontalLines={true}
+                chartConfig={{
+                  backgroundGradientFrom: "#fff",
+                  backgroundGradientTo: "#fff",
+                  fillShadowGradientFrom: "blue",
+                  fillShadowGradientTo: "red",
+                  backgroundGradientFromOpacity: 0,
+                  backgroundGradientToOpacity: 1,
+                  fillShadowGradientFromOpacity: 0,
+                  fillShadowGradientToOpacity: 1,
+                  propsForBackgroundLines: [{
+                    fillOpacity: 0.7,
+                  }],
+                  decimalPlaces: 0, // optional, defaults to 2dp
+                  color: (opacity = 1) => `rgba(33, 33, 33, ${opacity})`,
+                  labelColor: (opacity = 1) => `rgba(33, 33, 33, ${opacity})`
+                }}
+                bezier
+                style={{
+                  padding: 0,
+                  margin: 0,
+                  marginTop: 40,
+                  left: -20
+                }}
+              />
+            }
 
             {
-              projections &&
+              projections && inventory.length > 0 &&
               <>
                 <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>Inventory Projections</Text>
                 <LineChart
@@ -507,7 +523,7 @@ export default function DistributorComponent({navigation, route}) {
                         let key = `${line}_${identifier}`
                         return (
                           <View style={[styles.baseText, styles.fullWidth, styles.tertiary, styles.center, styles.defaultRowContainer, {marginTop: 10}]}>
-                            <Text>{FormatProductName(key)}s: {lin[key]}</Text>
+                            <Text>{FormatProductName(key, true)}: {lin[key]}</Text>
                             <View style={styles.spacer}></View>
                             <Text style={[styles.primary, styles.bold]}>{lin.isDelivery ? CalculateDelivered(key, lin, idx) : ''}</Text>
                           </View>
