@@ -200,8 +200,9 @@ export default function Distributors({navigation}) {
         return;
       }
 
-      Location.watchPositionAsync({distanceInterval: 1}, (location) => {
+      Location.watchPositionAsync({distanceInterval: 1600, accuracy: Location.Accuracy.High, timeInterval: 15000}, (location) => {
         if (search !== "") return;
+
         setLocation(location);
       });
     })();
@@ -284,8 +285,11 @@ export default function Distributors({navigation}) {
   }
 
   React.useEffect(() => {
+    if (!location || routeMode.active) return;
+
+    console.log("LOADING")
     load(location)
-  }, [sortBy])
+  }, [location])
 
   React.useEffect(() => {
     if (isLoading) {

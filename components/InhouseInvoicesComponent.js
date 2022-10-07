@@ -284,7 +284,7 @@ export default function InvoicesComponent({navigation, route}) {
         return;
       }
 
-      Location.watchPositionAsync({distanceInterval: 50}, (location) => {
+      Location.watchPositionAsync({distanceInterval: 1600}, (location) => {
         setLocation(location);
 
         let dists = distributors.slice().map(distributor => new Distributor(distributor.identifier, distributor.company, distributor.managers, distributor.address, distributor.lines, distributor.lat, distributor.lng, distributor.status, distributor.route, location.coords)).sort((a, b) => {
@@ -306,8 +306,7 @@ export default function InvoicesComponent({navigation, route}) {
         })
 
         if (dists.length > 0) {
-          setDistributors(dists);
-          if (dists[0].distance < 1) {
+          if (dists[0].distance < 0.16) {
             setPromptInvoiceForNearestDist(true)
           }
         }
@@ -650,6 +649,7 @@ export default function InvoicesComponent({navigation, route}) {
 
   React.useEffect(() => {
     if (!location) return;
+    if (distributors.length > 0) return;
 
     load()
   }, [location])
@@ -979,11 +979,7 @@ export default function InvoicesComponent({navigation, route}) {
                             <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{line.quantity} x FREE</Text>
                           }
                           {
-                            line.rate != 0 && line.rate.toString().includes(".") &&
-                            <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{line.quantity} x ${line.rate}</Text>
-                          }
-                          {
-                            line.rate != 0 && !line.rate.toString().includes(".") &&
+                            line.rate != 0 &&
                             <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{line.quantity} x ${line.rate / 1000}</Text>
                           }
                         </View>
