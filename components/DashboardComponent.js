@@ -12,6 +12,7 @@ import Api from '../Api'
 import moment from 'moment';
 moment().format();
 import { FormatProductNameLong } from './Globals'
+import InvoiceModel from './Invoice.model'
 
 let stylesheet = require('../Styles')
 let styles = stylesheet.Styles;
@@ -43,6 +44,7 @@ export default function DashboardComponent({navigation}) {
   const [pendingDeliveries, setPendingDeliveries] = React.useState([])
   const [overdueInvoices, setOverdueInvoices] = React.useState([])
   const [distributorsNeedingAttention, setDistributorsNeedingAttention] = React.useState([])
+  const [topups, setTopUps] = React.useState([])
 
   const load = async () => {
     setIsLoading(true)
@@ -61,8 +63,9 @@ export default function DashboardComponent({navigation}) {
       setWebsiteSales(res.data._o.map(o => parseInt(o.total)).reduce((total, next) => total + next, 0))
       setPendingOrders(res.data._o.filter(o => !o.fulfilled))
 
+      setTopUps(res.data._t)
       setPhysicalSales(res.data._i.map(i => i.total).reduce((total, next) => total + next, 0))
-      setPendingDeliveries(res.data._i.filter(i => res.data._t.includes(i.identifier)))
+      setPendingDeliveries(res.data._i.filter(i => !res.data._t.includes(i.identifier)))
       setOverdueInvoices(res.data._i.filter(i => !i.paid && moment().diff(moment(i.due, "MM/DD/YY")) >= 0))
       setPermissions(res.data._p)
       setTrends(res.data._trends)
@@ -260,81 +263,7 @@ export default function DashboardComponent({navigation}) {
               {
                 pendingDeliveries.map(invoice => {
                   return (
-                    <Pressable style={[styles.fullInvoice, styles.elevated]}>
-                      <View style={[styles.defaultRowContainer, styles.fullWidth, {padding: 10}]}>
-                        <View style={[styles.defaultColumnContainer]}>
-                          <Text style={[styles.tinyText, styles.tertiary, {marginTop: 2, opacity: 0.3}]}>Bill To</Text>
-                          <Text style={[styles.tinyText, styles.tertiary, {marginTop: 2, opacity: 0.5}]}>{invoice.distributor.company}</Text>
-                          <Text style={[styles.tinyText, styles.tertiary, {marginTop: 2, opacity: 0.5}]}>{invoice.distributor.address.line1}</Text>
-                          <Text style={[styles.tinyText, styles.tertiary, {marginTop: 2, opacity: 0.5}]}>{invoice.distributor.address.rest}</Text>
-                        </View>
-                        <View style={[styles.spacer]}></View>
-                        <Image  style={{height: 60,  width: 60, resizeMode: 'contain', marginRight: 10}} source={{uri: 'https://res.cloudinary.com/cbd-salud-sativa/image/upload/v1649685403/salud-organica-logicon.png'}}></Image>
-                      </View>
-                      <View style={[styles.defaultColumnContainer, styles.fullWidth, styles.spacer, {marginTop: 20, marginBottom: 15, padding: 10}]}>
-                        {
-                          invoice.line.map(line => {
-                            return (
-                              <View style={[styles.defaultRowContainer, styles.fullWidth, {marginTop: 5, marginBottom: 5}]}>
-                                <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{FormatProductNameLong(line.product)}</Text>
-                                <View style={styles.spacer}></View>
-                                <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{line.quantity} x ${line.rate}</Text>
-                              </View>
-                            )
-                          })
-                        }
-                      </View>
-                      <View style={styles.defaultColumnContainer, styles.fullWidth, styles.fullSCContent}>
-                        <View style={[styles.defaultRowContainer, styles.fullWidth]}>
-                          <View style={[styles.defaultColumnContainer]}>
-                            <Text numberOfLines={1} style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary, {marginBottom: 2}]}>Balance: ${invoice.balance.toFixed(2)}</Text>
-                          </View>
-                          <View style={styles.spacer}></View>
-                          <View style={[styles.defaultColumnContainer]}>
-                            <Text style={[styles.tinyText, styles.tertiary, styles.opaque, {marginTop: 2}]}></Text>
-                          </View>
-                        </View>
-                        <View style={[styles.spacer, styles.defaultColumnContainer, styles.fullWidth, {alignItems: 'flex-start', marginTop: 10}]}>
-                          <Text style={[styles.tinyText, styles.primary, styles.bold, styles.center]}>Total: ${invoice.total.toFixed(2)}</Text>
-                          {
-                            !invoice.paid && invoice.dueDays > 1 &&
-                            <Text style={[styles.tinyText, styles.primary, styles.bold, styles.center, {marginTop: 5}]}>Due in {invoice.dueDays} days</Text>
-                          }
-                          {
-                            !invoice.paid && invoice.dueDays == 1 &&
-                            <Text style={[styles.tinyText, styles.primary, styles.bold, styles.center, {marginTop: 5}]}>Due in {invoice.dueDays} day</Text>
-                          }
-                        </View>
-                        {
-                          !invoice.paid && invoice.dueDays < 1 &&
-                          <View style={{position: 'absolute', left: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopRightRadius: 5, borderBottomLeftRadius: 5, backgroundColor: invoice.dueDays > 0 || invoice.paid ? stylesheet.Primary : 'red'}}>
-                            {
-                              invoice.dueDays == 0 &&
-                              <Text style={[styles.tinyText, styles.bold, styles.center, {color: 'white', marginTop: 2}]}>Due Today</Text>
-                            }
-                            {
-                              invoice.dueDays == -1 &&
-                              <Text style={[styles.tinyText, styles.bold, styles.center, {color: 'white', marginTop: 2}]}>Overdue {invoice.dueDays * -1} day</Text>
-                            }
-                            {
-                              invoice.dueDays < -1 &&
-                              <Text style={[styles.tinyText, styles.bold, styles.center, {color: 'white', marginTop: 2}]}>Overdue {invoice.dueDays * -1} days</Text>
-                            }
-                          </View>
-                        }
-                        {
-                          invoice.paid &&
-                          <View style={{position: 'absolute', left: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopRightRadius: 5, borderBottomLeftRadius: 5, backgroundColor: stylesheet.Primary}}>
-                            <Text style={[styles.tinyText, styles.bold, styles.center, {color: 'white', marginTop: 2}]}>PAID {invoice.payments[0].date}</Text>
-                          </View>
-                        }
-                        <View style={{position: 'absolute', right: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopLeftRadius: 5, borderBottomRightRadius: 5, backgroundColor: invoice.dueDays > 0 || invoice.paid ? stylesheet.Primary : 'red'}}>
-                          <Text style={[styles.tinyText, styles.secondary, styles.bold, {marginTop: 2}]}>
-                            #{invoice.identifier}
-                          </Text>
-                        </View>
-                      </View>
-                    </Pressable>
+                    <InvoiceModel topups={topups} data={invoice} />
                   )
                 })
               }
@@ -349,81 +278,7 @@ export default function DashboardComponent({navigation}) {
               {
                 overdueInvoices.map(invoice => {
                   return (
-                    <View style={[styles.fullInvoice, styles.elevated]}>
-                      <View style={[styles.defaultRowContainer, styles.fullWidth, {padding: 10}]}>
-                        <View style={[styles.defaultColumnContainer]}>
-                          <Text style={[styles.tinyText, styles.tertiary, {marginTop: 2, opacity: 0.3}]}>Bill To</Text>
-                          <Text style={[styles.tinyText, styles.tertiary, {marginTop: 2, opacity: 0.5}]}>{invoice.distributor.company}</Text>
-                          <Text style={[styles.tinyText, styles.tertiary, {marginTop: 2, opacity: 0.5}]}>{invoice.distributor.address.line1}</Text>
-                          <Text style={[styles.tinyText, styles.tertiary, {marginTop: 2, opacity: 0.5}]}>{invoice.distributor.address.rest}</Text>
-                        </View>
-                        <View style={[styles.spacer]}></View>
-                        <Image  style={{height: 60,  width: 60, resizeMode: 'contain', marginRight: 10}} source={{uri: 'https://res.cloudinary.com/cbd-salud-sativa/image/upload/v1649685403/salud-organica-logicon.png'}}></Image>
-                      </View>
-                      <View style={[styles.defaultColumnContainer, styles.fullWidth, {marginTop: 20, marginBottom: 15, padding: 10}]}>
-                        {
-                          invoice.line.map(line => {
-                            return (
-                              <View style={[styles.defaultRowContainer, styles.fullWidth, {marginTop: 5, marginBottom: 5}]}>
-                                <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{FormatProductNameLong(line.product)}</Text>
-                                <View style={styles.spacer}></View>
-                                <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{line.quantity} x ${line.rate}</Text>
-                              </View>
-                            )
-                          })
-                        }
-                      </View>
-                      <View style={styles.defaultColumnContainer, styles.fullWidth, styles.fullSCContent}>
-                        <View style={[styles.defaultRowContainer, styles.fullWidth]}>
-                          <View style={[styles.defaultColumnContainer]}>
-                            <Text numberOfLines={1} style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary, {marginBottom: 2}]}>Balance: ${invoice.balance.toFixed(2)}</Text>
-                          </View>
-                          <View style={styles.spacer}></View>
-                          <View style={[styles.defaultColumnContainer]}>
-                            <Text style={[styles.tinyText, styles.tertiary, styles.opaque, {marginTop: 2}]}></Text>
-                          </View>
-                        </View>
-                        <View style={[styles.spacer, styles.defaultColumnContainer, styles.fullWidth, {alignItems: 'flex-start', marginTop: 10}]}>
-                          <Text style={[styles.tinyText, styles.primary, styles.bold, styles.center]}>Total: ${invoice.total.toFixed(2)}</Text>
-                          {
-                            !invoice.paid && invoice.dueDays > 1 &&
-                            <Text style={[styles.tinyText, styles.primary, styles.bold, styles.center, {marginTop: 5}]}>Due in {invoice.dueDays} days</Text>
-                          }
-                          {
-                            !invoice.paid && invoice.dueDays == 1 &&
-                            <Text style={[styles.tinyText, styles.primary, styles.bold, styles.center, {marginTop: 5}]}>Due in {invoice.dueDays} day</Text>
-                          }
-                        </View>
-                        {
-                          !invoice.paid && invoice.dueDays < 1 &&
-                          <View style={{position: 'absolute', left: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopRightRadius: 5, borderBottomLeftRadius: 5, backgroundColor: invoice.dueDays > 0 || invoice.paid ? stylesheet.Primary : 'red'}}>
-                            {
-                              invoice.dueDays == 0 &&
-                              <Text style={[styles.tinyText, styles.bold, styles.center, {color: 'white', marginTop: 2}]}>Due Today</Text>
-                            }
-                            {
-                              invoice.dueDays == -1 &&
-                              <Text style={[styles.tinyText, styles.bold, styles.center, {color: 'white', marginTop: 2}]}>Overdue {invoice.dueDays * -1} day</Text>
-                            }
-                            {
-                              invoice.dueDays < -1 &&
-                              <Text style={[styles.tinyText, styles.bold, styles.center, {color: 'white', marginTop: 2}]}>Overdue {invoice.dueDays * -1} days</Text>
-                            }
-                          </View>
-                        }
-                        {
-                          invoice.paid &&
-                          <View style={{position: 'absolute', left: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopRightRadius: 5, borderBottomLeftRadius: 5, backgroundColor: stylesheet.Primary}}>
-                            <Text style={[styles.tinyText, styles.bold, styles.center, {color: 'white', marginTop: 2}]}>PAID {invoice.payments[0].date}</Text>
-                          </View>
-                        }
-                        <View style={{position: 'absolute', right: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopLeftRadius: 5, borderBottomRightRadius: 5, backgroundColor: invoice.dueDays > 0 || invoice.paid ? stylesheet.Primary : 'red'}}>
-                          <Text style={[styles.tinyText, styles.secondary, styles.bold, {marginTop: 2}]}>
-                            #{invoice.identifier}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
+                    <InvoiceModel topups={topups} data={invoice} />
                   )
                 })
               }

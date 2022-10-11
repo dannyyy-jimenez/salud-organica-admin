@@ -24,12 +24,12 @@ import {
 } from "react-native-chart-kit";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FormatProductNameLong } from './Globals'
+import InvoiceModel from './Invoice.model'
 
 let stylesheet = require('../Styles')
 let styles = stylesheet.Styles;
 
 const invoiceActionSheetRef = React.createRef();
-const scopeInvoiceActionSheetRef = React.createRef();
 const productLotSearchActionSheetRef = React.createRef();
 const quickbooksAuthenticateActionSheetRef = React.createRef();
 
@@ -73,11 +73,8 @@ export default function InvoicesComponent({navigation, route}) {
   const [products, setProducts] = React.useState([])
   const [topups, setTopUps] = React.useState([])
   const [location, setLocation] = React.useState(null);
-  const [scopeInvoice, setScopeInvoice] = React.useState(null)
   const [onWiFi, setOnWiFi] = React.useState(false)
   const [search, setSearch] = React.useState("")
-  const [showInvoiceReminders, setShowInvoiceReminders] = React.useState(false)
-  const [invoiceRemindersSection, setInvoiceRemindersSection] = React.useState("PRINT")
 
   // invoice creating
   const [authenticatedQuickbooks, setAuthenticatedQuickbooks] = React.useState(false)
@@ -99,8 +96,6 @@ export default function InvoicesComponent({navigation, route}) {
   const [productSearchIden, setProductSearchIden] = React.useState('')
   const [productSearchLot, setProductSearchLot] = React.useState('')
 
-  const [invoicePaymentMode, setInvoicePaymentMode] = React.useState(false)
-  const [confirmInvoiceDeleteMode, setConfirmInvoiceDeleteMode] = React.useState(false)
   const [invoiceAddMode, setInvoiceAddMode] = React.useState(false)
   const [invoiceAddScanMode, setInvoiceAddScanMode] = React.useState(false)
   const [invoiceAddSearchMode, setInvoiceAddSearchMode] = React.useState(false)
@@ -161,10 +156,6 @@ export default function InvoicesComponent({navigation, route}) {
 
       setTopUps(res.data.topups)
       AnalyzeInvoices(res.data.invoices)
-
-      if (scopeInvoice) {
-        setScopeInvoice(res.data.invoices.find(i => i.identifier == scopeInvoice.identifier))
-      }
 
       let prevSearch = search;
 
@@ -370,12 +361,6 @@ export default function InvoicesComponent({navigation, route}) {
     setInvoices(defaultInvoices.filter(invoice => InvoiceFilter(invoice)))
   }, [search])
 
-  React.useEffect(() => {
-    if (scopeInvoice) {
-      scopeInvoiceActionSheetRef.current?.setModalVisible(true)
-    }
-  }, [scopeInvoice])
-
   const getRecentBatch = async (identifier) => {
     try {
       const recent = await AsyncStorage.getItem(`LOT_NUM_${identifier}`)
@@ -451,8 +436,6 @@ export default function InvoicesComponent({navigation, route}) {
 
       let scopified = await load(false, res.data._identifier);
 
-      setShowInvoiceReminders(true)
-      setScopeInvoice(scopified)
       setInvoiceLine([])
       setInvoiceOwnerIdentifier("")
     } catch (e) {
@@ -462,130 +445,7 @@ export default function InvoicesComponent({navigation, route}) {
     }
   }
 
-  const GetShareableURI = async (id) => {
-    setIsLoading(true);
-
-    try {
-      const res = await API.get('/admin/invoice/actions/shareable', {id: id});
-
-      if (res.isError) throw 'error';
-
-      setIsLoading(false);
-
-      const result = await Share.share({
-        message: res.data._txt
-      });
-    } catch (e) {
-      setIsLoading(false);
-      console.log(e)
-    }
-  }
-
   // edit invoice
-
-  const GetPdfURI = async (id) => {
-    setIsLoading(true);
-
-    try {
-      const res = await API.get('/admin/invoice/actions/pdf', {id: id});
-
-      if (res.isError) throw 'error';
-
-      const fileUri = FileSystem.documentDirectory + `salud_organica-invoice_${id}.pdf`;
-
-      const buff = Buffer.from(res.data._f, 'base64')
-      let pdf = buff.toString('base64')
-      await FileSystem.writeAsStringAsync(fileUri, pdf, { encoding: FileSystem.EncodingType.Base64 });
-
-      setIsLoading(false);
-
-      await Sharing.shareAsync(fileUri);
-    } catch (e) {
-      setIsLoading(false);
-      console.log(e)
-    }
-  }
-
-  const GetPrintableURI = async (id) => {
-    setIsLoading(true);
-
-    try {
-      const res = await API.get('/admin/invoice/actions/printable', {id: id});
-
-      if (res.isError) throw 'error';
-
-      const buff = Buffer.from(res.data._f, 'utf-8')
-      let pdf = buff.toString('utf-8')
-
-      setIsLoading(false);
-
-      await Print.printAsync({
-        html: pdf
-      });
-    } catch (e) {
-      setIsLoading(false);
-      console.log(e)
-    }
-  }
-
-  const TopUpDelivery = async (invoice) => {
-    if (isLoading) return;
-
-    setIsLoading(true);
-
-    try {
-
-      const res = await API.post('/admin/invoice/actions/topup', {identifier: invoice.distributor.identifier, invoiceId: invoice.identifier});
-      if (res.isError) throw 'error';
-
-      setTopUps([...topups, invoice.identifier])
-
-      setIsLoading(false);
-    } catch (e) {
-      setIsLoading(false);
-      console.log(e)
-    }
-  }
-
-  const onDeleteInvoice = async (identifier) => {
-    if (isLoading) return;
-
-    setIsLoading(true);
-
-    try {
-
-      const res = await API.post('/admin/invoice/actions/delete', {identifier: identifier});
-
-      if (res.isError) throw 'error';
-
-      load()
-      scopeInvoiceActionSheetRef.current?.setModalVisible(false)
-    } catch (e) {
-      setIsLoading(false);
-      console.log(e)
-    }
-  }
-
-  const onAddPayment = async () => {
-    if (isLoading) return;
-
-    setIsLoading(true);
-
-    try {
-      const res = await API.post('/admin/invoice/actions/payment', {identifier: scopeInvoice.identifier, amount: invoicePaymentAmount, memo: invoicePaymentMemo, type: invoicePaymentIsCash ? 'CASH' : 'CHECK', ref: invoicePaymentRef});
-      if (res.isError) throw 'error';
-
-      load()
-
-      setInvoicePaymentRef('')
-      setInvoicePaymentMemo('')
-      setInvoicePaymentAmount('')
-      setInvoicePaymentMode(false)
-    } catch (e) {
-      setIsLoading(false);
-      console.log(e)
-    }
-  }
 
   const onInvoiceLineRemove = async (idx) => {
     let copied = invoiceLine.slice();
@@ -956,105 +816,7 @@ export default function InvoicesComponent({navigation, route}) {
         {
           !isLoading && invoices.map((invoice) => {
             return (
-              <Pressable onPress={() => setScopeInvoice(invoice)} style={[styles.fullInvoice, styles.elevated]}>
-                <View style={[styles.defaultRowContainer, styles.fullWidth, {padding: 10}]}>
-                  <View style={[styles.defaultColumnContainer]}>
-                    <Text style={[styles.tinyText, styles.tertiary, {marginTop: 2, opacity: 0.3}]}>Bill To</Text>
-                    <Text style={[styles.tinyText, styles.tertiary, {marginTop: 2, opacity: 0.5}]}>{invoice.distributor.company}</Text>
-                    <Text style={[styles.tinyText, styles.tertiary, {marginTop: 2, opacity: 0.5}]}>{invoice.distributor.address.line1}</Text>
-                    <Text style={[styles.tinyText, styles.tertiary, {marginTop: 2, opacity: 0.5}]}>{invoice.distributor.address.rest}</Text>
-                  </View>
-                  <View style={[styles.spacer]}></View>
-                  <Image  style={{height: 60,  width: 60, resizeMode: 'contain', marginRight: 10}} source={{uri: 'https://res.cloudinary.com/cbd-salud-sativa/image/upload/v1649685403/salud-organica-logicon.png'}}></Image>
-                </View>
-                <View style={[styles.defaultColumnContainer, styles.fullWidth, {marginTop: 20, marginBottom: 15, padding: 10}]}>
-                  {
-                    invoice.line.map(line => {
-                      return (
-                        <View style={[styles.defaultRowContainer, styles.fullWidth, {marginTop: 5, marginBottom: 5}]}>
-                          <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{FormatProductNameLong(line.product)}</Text>
-                          <View style={styles.spacer}></View>
-                          {
-                            line.rate === 0 &&
-                            <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{line.quantity} x FREE</Text>
-                          }
-                          {
-                            line.rate != 0 &&
-                            <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{line.quantity} x ${line.rate / 1000}</Text>
-                          }
-                        </View>
-                      )
-                    })
-                  }
-                </View>
-                <View style={styles.defaultColumnContainer, styles.fullWidth, styles.fullSCContent}>
-                  <View style={[styles.defaultRowContainer, styles.fullWidth]}>
-                    <View style={[styles.defaultColumnContainer]}>
-                      <Text numberOfLines={1} style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary, {marginBottom: 2}]}>Balance: ${invoice.balance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
-                    </View>
-                    <View style={styles.spacer}></View>
-                    <View style={[styles.defaultColumnContainer]}>
-                      <Text style={[styles.tinyText, styles.tertiary, styles.opaque, {marginTop: 2}]}></Text>
-                    </View>
-                  </View>
-                  <View style={[styles.spacer, styles.defaultColumnContainer, styles.fullWidth, {alignItems: 'flex-start', marginTop: 10}]}>
-                    <Text style={[styles.tinyText, styles.primary, styles.bold, styles.center]}>Total: ${invoice.total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
-                    {
-                      !invoice.paid && invoice.dueDays > 1 &&
-                      <Text style={[styles.tinyText, styles.primary, styles.bold, styles.center, {marginTop: 5}]}>Due in {invoice.dueDays} days</Text>
-                    }
-                    {
-                      !invoice.paid && invoice.dueDays == 1 &&
-                      <Text style={[styles.tinyText, styles.primary, styles.bold, styles.center, {marginTop: 5}]}>Due in {invoice.dueDays} day</Text>
-                    }
-                  </View>
-                  {
-                    !invoice.paid && invoice.dueDays < 1 &&
-                    <View style={{position: 'absolute', left: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopRightRadius: 5, borderBottomLeftRadius: 5, backgroundColor: invoice.dueDays > 0 || invoice.paid ? stylesheet.Primary : 'red'}}>
-                      {
-                        invoice.dueDays == 0 &&
-                        <Text style={[styles.tinyText, styles.bold, styles.center, {color: 'white', marginTop: 2}]}>Due Today</Text>
-                      }
-                      {
-                        invoice.dueDays == -1 &&
-                        <Text style={[styles.tinyText, styles.bold, styles.center, {color: 'white', marginTop: 2}]}>Overdue {invoice.dueDays * -1} day</Text>
-                      }
-                      {
-                        invoice.dueDays < -1 &&
-                        <Text style={[styles.tinyText, styles.bold, styles.center, {color: 'white', marginTop: 2}]}>Overdue {invoice.dueDays * -1} days</Text>
-                      }
-                    </View>
-                  }
-                  {
-                    invoice.paid &&
-                    <View style={{position: 'absolute', left: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopRightRadius: 5, borderBottomLeftRadius: 5, backgroundColor: stylesheet.Primary}}>
-                      <Text style={[styles.tinyText, styles.bold, styles.center, {color: 'white', marginTop: 2}]}>PAID {invoice.payments[0].date}</Text>
-                    </View>
-                  }
-                  <View style={{position: 'absolute', right: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopLeftRadius: 5, borderBottomRightRadius: 5, backgroundColor: invoice.dueDays > 0 || invoice.paid ? stylesheet.Primary : 'red'}}>
-                    <Text style={[styles.tinyText, styles.secondary, styles.bold, {marginTop: 2}]}>
-                      #{invoice.identifier}
-                    </Text>
-                  </View>
-                  <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {padding: 10, marginTop: 10, marginBottom: 20}]}>
-                    <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => GetPrintableURI(invoice.identifier)}>
-                      <Feather name="printer" size={28} color="black" />
-                      <Text style={{marginTop: 5, fontSize: 12}}>Print</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => GetPdfURI(invoice.identifier)}>
-                      <AntDesign name="pdffile1" size={28} color="black" />
-                      <Text style={{marginTop: 5, fontSize: 12}}>Share</Text>
-                    </TouchableOpacity>
-                    {
-                      !topups.includes(invoice.identifier) &&
-                      <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => TopUpDelivery(invoice)}>
-                        <Feather name="truck" size={28} color="black" />
-                        <Text style={{marginTop: 5, fontSize: 12}}>Delivered</Text>
-                      </TouchableOpacity>
-                    }
-                  </View>
-                </View>
-              </Pressable>
+              <InvoiceModel topups={topups} data={invoice} />
             )
           })
         }
@@ -1062,312 +824,7 @@ export default function InvoicesComponent({navigation, route}) {
       <TouchableOpacity onPress={() => authenticatedQuickbooks ? invoiceActionSheetRef.current?.setModalVisible(true) : quickbooksAuthenticateActionSheetRef.current?.setModalVisible(true)} style={[styles.center, styles.fab]}>
         <Feather name="plus" size={32} color={stylesheet.SecondaryTint} />
       </TouchableOpacity>
-      <ActionSheet containerStyle={{backgroundColor: stylesheet.Secondary}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} onClose={() => {setScopeInvoice(null); setConfirmInvoiceDeleteMode(false); setInvoicePaymentMode(false); setShowInvoiceReminders(false); setInvoiceRemindersSection("PRINT")}} ref={scopeInvoiceActionSheetRef}>
-        {
-          scopeInvoice && showInvoiceReminders && invoiceRemindersSection === "PRINT" &&
-          <View style={{padding: 15, marginBottom: 40}}>
-            <View style={[styles.defaultRowContainer, styles.fullWidth, {marginBottom: 40}]}>
-              <View style={styles.spacer}></View>
-              <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary]}>Invoice #{scopeInvoice.identifier}</Text>
-              <View style={styles.spacer}></View>
-            </View>
 
-            <TouchableOpacity onPress={() => GetPrintableURI(scopeInvoice.identifier)} style={[styles.defaultRowContainer, styles.fullWidth, styles.center]}>
-              <Feather name="printer" size={36} color={stylesheet.Primary} />
-            </TouchableOpacity>
-
-            <Text style={[styles.subHeaderText, styles.bold, styles.centerText, styles.tertiary]}>You might want to print the invoice</Text>
-
-            <View style={[styles.defaultColumnContainer, styles.marginWidth, styles.center, {marginTop: 30}]}>
-              <Text style={[styles.base, styles.bold, styles.fullWidth, styles.tertiary, {marginBottom: 10}]}>Steps to Print On the Go</Text>
-              <Text style={[styles.base, styles.bold, styles.marginWidth, styles.tertiary]}>1. Tap printer icon</Text>
-              <Text style={[styles.base, styles.bold, styles.marginWidth, styles.tertiary]}>2. Select "Print"</Text>
-              <Text style={[styles.base, styles.bold, styles.marginWidth, styles.tertiary]}>3. Share to or Open with Paperrang App</Text>
-              <Text style={[styles.base, styles.bold, styles.marginWidth, styles.tertiary]}>4. Print!</Text>
-            </View>
-
-            <TouchableOpacity onPress={() => {setInvoiceRemindersSection("DELIVERY")}} style={[styles.roundedButton, styles.filled, {marginLeft: '7.5%', marginTop: 30}]}>
-              <Text style={[styles.secondary, styles.bold]}>Finished</Text>
-            </TouchableOpacity>
-          </View>
-        }
-        {
-          scopeInvoice && showInvoiceReminders && invoiceRemindersSection === "DELIVERY" &&
-          <View style={{padding: 15, marginBottom: 40}}>
-            <View style={[styles.defaultRowContainer, styles.fullWidth, {marginBottom: 40}]}>
-              <View style={styles.spacer}></View>
-              <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary]}>Invoice #{scopeInvoice.identifier}</Text>
-              <View style={styles.spacer}></View>
-            </View>
-
-            <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center]}>
-              <Feather name="truck" size={36} color="black" />
-            </View>
-            <Text style={[styles.subHeaderText, styles.bold, styles.centerText, styles.tertiary]}>Don't forget to mark as delivered</Text>
-
-            <TouchableOpacity onPress={() => {TopUpDelivery(scopeInvoice); setInvoiceRemindersSection("PICTURE")}} style={[styles.roundedButton, styles.filled, {marginLeft: '7.5%', marginTop: 30}]}>
-              <Text style={[styles.secondary, styles.bold]}>Delivered!</Text>
-            </TouchableOpacity>
-          </View>
-        }
-        {
-          scopeInvoice && showInvoiceReminders && invoiceRemindersSection === "PICTURE" &&
-          <View style={{padding: 15, marginBottom: 40}}>
-            <View style={[styles.defaultRowContainer, styles.fullWidth, {marginBottom: 40}]}>
-              <View style={styles.spacer}></View>
-              <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary]}>Invoice #{scopeInvoice.identifier}</Text>
-              <View style={styles.spacer}></View>
-            </View>
-
-            <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center]}>
-              <Feather name="camera" size={36} color="black" />
-            </View>
-            <Text style={[styles.subHeaderText, styles.bold, styles.centerText, styles.tertiary]}>Don't forget to take pictures of product placement</Text>
-
-            <TouchableOpacity onPress={() => {setShowInvoiceReminders(false);setInvoiceRemindersSection('PRINT')}} style={[styles.roundedButton, styles.filled, {marginLeft: '7.5%', marginTop: 30}]}>
-              <Text style={[styles.secondary, styles.bold]}>Done!</Text>
-            </TouchableOpacity>
-          </View>
-        }
-        {
-          scopeInvoice && !showInvoiceReminders && !confirmInvoiceDeleteMode && !invoicePaymentMode &&
-          <View style={{padding: 15}}>
-            <View style={[styles.defaultRowContainer, styles.fullWidth]}>
-              <View style={styles.spacer}></View>
-              <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary]}>Invoice #{scopeInvoice.identifier}</Text>
-              <View style={styles.spacer}></View>
-            </View>
-            {
-              scopeInvoice.paid &&
-              <Text style={[styles.baseText, styles.primary, styles.bold, styles.center, {marginTop: 10}]}>PAID</Text>
-            }
-            {
-              !scopeInvoice.paid && scopeInvoice.dueDays > 1 &&
-              <Text style={[styles.baseText, styles.primary, styles.bold, styles.center, {marginTop: 10}]}>Due in {scopeInvoice.dueDays} days</Text>
-            }
-            {
-              !scopeInvoice.paid && scopeInvoice.dueDays == 1 &&
-              <Text style={[styles.baseText, styles.primary, styles.bold, styles.center, {marginTop: 10}]}>Due in {scopeInvoice.dueDays} day</Text>
-            }
-            {
-              !scopeInvoice.paid && scopeInvoice.dueDays == 0 &&
-              <Text style={[styles.baseText, styles.bold, styles.center, {color: 'red', marginTop: 10}]}>Due Today</Text>
-            }
-            {
-              !scopeInvoice.paid && scopeInvoice.dueDays == -1 &&
-              <Text style={[styles.baseText, styles.bold, styles.center, {color: 'red', marginTop: 10}]}>Overdue {scopeInvoice.dueDays * -1} day</Text>
-            }
-            {
-              !scopeInvoice.paid && scopeInvoice.dueDays < -1 &&
-              <Text style={[styles.baseText, styles.bold, styles.center, {color: 'red', marginTop: 10}]}>Overdue {scopeInvoice.dueDays * -1} days</Text>
-            }
-            <View style={[styles.defaultRowContainer, styles.fullWidth, {marginTop: 25}]}>
-              <View style={[styles.defaultColumnContainer]}>
-                <Text style={[styles.tinyText, styles.tertiary, {marginTop: 2, opacity: 0.3}]}>Bill To</Text>
-                <Text style={[styles.tinyText, styles.tertiary, {marginTop: 2, opacity: 0.5}]}>{scopeInvoice.distributor.managers.join(' or ')}</Text>
-                <Text style={[styles.tinyText, styles.tertiary, {marginTop: 2, opacity: 0.5}]}>{scopeInvoice.distributor.company}</Text>
-                <Text style={[styles.tinyText, styles.tertiary, {marginTop: 2, opacity: 0.5}]}>{scopeInvoice.distributor.address.line1}</Text>
-                <Text style={[styles.tinyText, styles.tertiary, {marginTop: 2, opacity: 0.5}]}>{scopeInvoice.distributor.address.rest}</Text>
-              </View>
-              <View style={[styles.spacer]}></View>
-              <Image  style={{height: 60,  width: 60, resizeMode: 'contain', marginRight: 10}} source={{uri: 'https://res.cloudinary.com/cbd-salud-sativa/image/upload/v1649685403/salud-organica-logicon.png'}}></Image>
-            </View>
-            <View style={[styles.defaultColumnContainer, styles.fullWidth, {marginTop: 20, marginBottom: 5}]}>
-              {
-                scopeInvoice.line.map(line => {
-                  return (
-                    <View style={[styles.defaultRowContainer, styles.fullWidth, {marginTop: 5, marginBottom: 5}]}>
-                      <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{FormatProductNameLong(line.product)} (#{line.lot})</Text>
-                      <View style={styles.spacer}></View>
-                      {
-                        line.rate === 0 &&
-                        <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{line.quantity} x FREE</Text>
-                      }
-                      {
-                        line.rate != 0 && line.rate.toString().includes(".") &&
-                        <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{line.quantity} x ${line.rate}</Text>
-                      }
-                      {
-                        line.rate != 0 && !line.rate.toString().includes(".") &&
-                        <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{line.quantity} x ${line.rate / 1000}</Text>
-                      }
-                    </View>
-                  )
-                })
-              }
-            </View>
-            {
-              scopeInvoice.payments && scopeInvoice.payments.length > 0 &&
-              <View style={[styles.defaultColumnContainer, styles.fullWidth, {marginBottom: 40}]}>
-                {
-                  scopeInvoice.payments.map(payment => {
-                    return (
-                      <View style={[styles.defaultRowContainer, styles.fullWidth, {marginBottom: 5}]}>
-                        <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.primary]}>{payment.date} Payment Recieved</Text>
-                        <View style={styles.spacer}></View>
-                        <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.primary]}>- ${payment.amount.toFixed(2)}</Text>
-                      </View>
-                    )
-                  })
-                }
-              </View>
-            }
-            <View style={styles.defaultColumnContainer, styles.fullWidth, {backgroundColor: 'white'}}>
-              <View style={[styles.defaultRowContainer, styles.fullWidth]}>
-                <View style={[styles.defaultColumnContainer]}>
-                  <Text numberOfLines={1} style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary, {marginBottom: 2}]}>Balance: ${scopeInvoice.balance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
-                </View>
-                <View style={styles.spacer}></View>
-                <View style={[styles.defaultColumnContainer]}>
-                  <Text style={[styles.tinyText, styles.tertiary, styles.opaque, {marginTop: 2}]}>Due: {scopeInvoice.due}</Text>
-                </View>
-              </View>
-              <View style={[styles.defaultColumnContainer, styles.fullWidth, {alignItems: 'flex-start', marginTop: 10}]}>
-                <Text style={[styles.tinyText, styles.primary, styles.bold, styles.center]}>Total: ${scopeInvoice.total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
-              </View>
-              <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {marginTop: 30, marginBottom: 20}]}>
-                {
-                  !topups.includes(scopeInvoice.identifier) &&
-                  <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => TopUpDelivery(scopeInvoice)}>
-                    <Feather name="truck" size={28} color="black" />
-                    <Text style={{marginTop: 5, fontSize: 12}}>Delivered</Text>
-                  </TouchableOpacity>
-                }
-                {
-                  !scopeInvoice.paid &&
-                  <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => setInvoicePaymentMode(true)}>
-                    <Feather name="dollar-sign" size={28} color="black" />
-                    <Text style={{marginTop: 5, fontSize: 12}}>Payment</Text>
-                  </TouchableOpacity>
-                }
-                <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => setConfirmInvoiceDeleteMode(true)}>
-                  <Feather name="trash-2" size={28} color="red" />
-                  <Text style={{marginTop: 5, fontSize: 12, color: "red"}}>Delete</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        }
-        {
-          scopeInvoice && invoicePaymentMode &&
-          <View style={{padding: 15, paddingBottom: 45}}>
-            <View style={[styles.defaultRowContainer, styles.fullWidth]}>
-              <View style={styles.spacer}></View>
-              <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary]}>Invoice #{scopeInvoice.identifier}</Text>
-              <View style={styles.spacer}></View>
-            </View>
-            {
-              isLoading &&
-              <View styles={[styles.defaultRowContainer, styles.fullWidth, styles.center]}>
-                <LottieView
-                    ref={animationRef}
-                    style={{
-                      backgroundColor: '#fff',
-                      width: '50%',
-                      marginTop: 20,
-                      marginLeft: '12%',
-                      marginBottom: 40
-                    }}
-                    autoPlay
-                    loop
-                    source={require('../assets/loading-bank.json')}
-                    // OR find more Lottie files @ https://lottiefiles.com/featured
-                    // Just click the one you like, place that file in the 'assets' folder to the left, and replace the above 'require' statement
-                  />
-              </View>
-            }
-
-            {
-              !isLoading &&
-              <>
-                <View style={[styles.defaultRowContainer, styles.marginWidth, {marginTop: 30, marginBottom: 30}, styles.center, styles.switchable]}>
-                  <Pressable onPress={() => setInvoicePaymentIsCash(true)} style={[styles.switchie, invoicePaymentIsCash ? styles.switchieOn : '']}>
-                    <Text style={[styles.baseText, styles.bold, invoicePaymentIsCash ? styles.secondary : styles.tertiary]}>Cash</Text>
-                  </Pressable>
-                  <Pressable onPress={() => setInvoicePaymentIsCash(false)} style={[styles.switchie, !invoicePaymentIsCash ? styles.switchieOn : '']}>
-                    <Text style={[styles.baseText, styles.bold, !invoicePaymentIsCash ? styles.secondary : styles.tertiary]}>Check</Text>
-                  </Pressable>
-                </View>
-                <View style={[styles.defaultRowContainer, styles.marginWidth]}>
-                  <Text style={[styles.baseText, styles.bold, styles.tertiary]}>
-                    Amount Paid
-                  </Text>
-                  <View style={[styles.spacer]}></View>
-                  <Pressable onPress={() => setInvoicePaymentAmount(scopeInvoice.balance.toFixed(2))}>
-                    <Text style={[styles.baseText, styles.bold, styles.primary]}>FULL ${scopeInvoice.balance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
-                  </Pressable>
-                </View>
-                <TextInput
-                  placeholderTextColor="#888"
-                  style={[{marginTop: 25,  marginBottom: 20, width: '100%'}, styles.baseInput]}
-                  placeholder="Enter amount..."
-                  keyboardType="numeric"
-                  value={invoicePaymentAmount}
-                  onChangeText={(text) => {
-                    setInvoicePaymentAmount(text)
-                  }}
-                />
-                <Text style={[styles.baseText, styles.bold, styles.marginWidth, styles.tertiary, {marginTop: 15}]}>Memo / Note</Text>
-                <TextInput
-                  placeholderTextColor="#888"
-                  style={[{marginTop: 25,  marginBottom: 20, width: '100%'}, styles.baseInput]}
-                  placeholder="Enter memo / note"
-                  keyboardType="default"
-                  value={invoicePaymentMemo}
-                  onChangeText={(text) => {
-                    setInvoicePaymentMemo(text)
-                  }}
-                />
-
-                {
-                  !invoicePaymentIsCash &&
-                  <>
-                    <Text style={[styles.baseText, styles.bold, styles.marginWidth, styles.tertiary, {marginTop: 15}]}>Check Reference Number</Text>
-                    <TextInput
-                      placeholderTextColor="#888"
-                      style={[{marginTop: 25,  marginBottom: 20, width: '100%'}, styles.baseInput]}
-                      placeholder="Enter check #"
-                      keyboardType="numeric"
-                      value={invoicePaymentRef}
-                      onChangeText={(text) => {
-                        setInvoicePaymentRef(text)
-                      }}
-                    />
-                  </>
-                }
-
-                <Text style={[styles.baseText, styles.bold, styles.marginWidth, styles.tertiary, {marginTop: 20}]}>Pending Balance: ${(scopeInvoice.balance - (isNaN(parseFloat(invoicePaymentAmount)) ? 0 : parseFloat(invoicePaymentAmount))).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
-
-                {
-                  invoicePaymentAmount !== "" && (invoicePaymentIsCash || (!invoicePaymentIsCash && invoicePaymentRef !== "")) &&
-                  <TouchableOpacity onPress={onAddPayment} style={[styles.roundedButton, styles.filled, {marginLeft: '7.5%', marginTop: 40}]}>
-                    <Text style={[styles.secondary, styles.bold]}>Add Payment</Text>
-                  </TouchableOpacity>
-                }
-              </>
-            }
-          </View>
-        }
-        {
-          scopeInvoice && confirmInvoiceDeleteMode &&
-          <View style={{padding: 15}}>
-            <View style={[styles.defaultRowContainer, styles.fullWidth]}>
-              <View style={styles.spacer}></View>
-              <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary]}>Invoice #{scopeInvoice.identifier}</Text>
-              <View style={styles.spacer}></View>
-            </View>
-            <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary, {marginTop: 25, marginBottom: 10}]}>Are you sure you want to delete this invoice?</Text>
-            <Text style={[styles.tinyText, styles.centerText, styles.tertiary, styles.bold, styles.opaque, {marginBottom: 20}]}>Press trash icon to confirm</Text>
-            <View style={styles.defaultColumnContainer, styles.fullWidth, styles.fullSCContent, {backgroundColor: 'white', paddingBottom: 0}}>
-              <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {marginTop: 10}]}>
-                <TouchableOpacity style={{marginLeft: 15, marginRight: 15, marginBottom: 20}} onPress={() => onDeleteInvoice(scopeInvoice.identifier)}>
-                  <Feather name="trash-2" size={40} color="red" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        }
-      </ActionSheet>
       <ActionSheet containerStyle={{paddingBottom: 20, backgroundColor: stylesheet.Secondary}} onClose={() => {setInvoiceAddMode(false); setInvoiceOwnerIdentifier("")}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} ref={invoiceActionSheetRef}>
         <View style={{marginBottom: 40}}>
           <View style={[styles.defaultRowContainer, styles.fullWidth]}>

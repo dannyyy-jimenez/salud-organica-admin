@@ -14,6 +14,8 @@ import * as SecureStore from 'expo-secure-store';
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 import API from './Api'
+import { SheetProvider } from "react-native-actions-sheet";
+import "./components/sheets.js";
 
 import DashboardComponent from './components/DashboardComponent'
 import OrdersComponent from './components/OrdersComponent'
@@ -216,7 +218,7 @@ export default function App() {
   };
 
   return (
-    <>
+    <SheetProvider>
       <StatusBar style="dark"/>
       {
         !appIsReady &&
@@ -301,7 +303,7 @@ export default function App() {
           </Tab.Navigator>
         </NavigationContainer>
       }
-    </>
+    </SheetProvider>
   );
 }
 

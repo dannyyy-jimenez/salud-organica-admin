@@ -206,6 +206,7 @@ export default function Distributors({navigation}) {
         setLocation(location);
       });
     })();
+    load()
   }, []);
 
   const shareMaps = async (dist) => {
@@ -285,13 +286,6 @@ export default function Distributors({navigation}) {
   }
 
   React.useEffect(() => {
-    if (!location || routeMode.active) return;
-
-    console.log("LOADING")
-    load(location)
-  }, [location])
-
-  React.useEffect(() => {
     if (isLoading) {
       animationRef.current.reset();
       animationRef.current.play();
@@ -307,14 +301,17 @@ export default function Distributors({navigation}) {
   }, [search])
 
   React.useEffect(() => {
-    setNeedAttention(distributors.filter(d => d.status > 21))
+    if (distributors.length === 0) return;
+
     let sortedByDistance = distributors.slice().sort((a, b) => a.distance - b.distance);
     if (sortedByDistance.length > 0 && sortedByDistance[0].distance < 0.0804672) {
       setNearest(sortedByDistance[0])
     } else {
       setNearest(null)
     }
-  }, [distributors])
+    setDistributors(sortedByDistance)
+    setNeedAttention(sortedByDistance.filter(d => d.status > 21))
+  }, [location])
 
   React.useEffect(() => {
     if (routeLetter === "") {
