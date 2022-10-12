@@ -239,10 +239,8 @@ export default function Distributors({navigation}) {
       return 'Excellent'
     } else if (status > 21) {
       return `Urgent - ${status}`
-    } else if (status > 7) {
+    } else if (status > 12) {
       return 'Follow Up'
-    } else if (status > 5)  {
-      return 'So-So'
     }
 
     return 'Good'

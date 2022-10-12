@@ -66,7 +66,7 @@ export default function DashboardComponent({navigation}) {
       setTopUps(res.data._t)
       setPhysicalSales(res.data._i.map(i => i.total).reduce((total, next) => total + next, 0))
       setPendingDeliveries(res.data._i.filter(i => !res.data._t.includes(i.identifier)))
-      setOverdueInvoices(res.data._i.filter(i => !i.paid && moment().diff(moment(i.due, "MM/DD/YY")) >= 0))
+      setOverdueInvoices(res.data._i.filter(i => !i.paid && res.data._t.includes(i.identifier) && moment().diff(moment(i.due, "MM/DD/YY")) >= 0))
       setPermissions(res.data._p)
       setTrends(res.data._trends)
 

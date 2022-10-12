@@ -1,3 +1,12 @@
+String.prototype.pluralize = function() {
+
+  let esEndings = ["s", "x", "z"]
+  let esEndingsM = ["sh", "ch"]
+
+  if (esEndings.includes(this.slice(-1)) || esEndingsM.includes(this.slice(-2))) return this + 'es'
+
+  return this + 's'
+}
 export const FormatSerieName = (serie) => {
   if  (serie == 'healing') return 'Healing Fire'
   if  (serie == 'origin') return 'Origin'
@@ -17,13 +26,13 @@ export const FormatSerieName = (serie) => {
 
 export const FormatProductName = (key, omitSerie = false) => {
   if (omitSerie) {
-    if (key === 'herencia_rollon') return "Rubbing Alcohol Roll-On"
-    if (key === 'herencia_rubbing') return "Rubbing Alcohol"
-    if (key === 'herencia_cream') return "Topical Cream"
-    if (key === 'moon_gummies-15ct') return "Gummies Jar"
-    if (key === 'moon_gummies') return "Gummies Pouch"
-    if (key === 'moon_oil') return "Oil Tincture"
-    if (key === 'moon_tablets') return "Tablets"
+    if (key === 'herencia_rollon') return "Roll-On"
+    if (key === 'herencia_rubbing') return "Alcohol"
+    if (key === 'herencia_cream') return "Cream"
+    if (key === 'moon_gummies-15ct') return "Jar"
+    if (key === 'moon_gummies') return "Pouch"
+    if (key === 'moon_oil') return "Tincture"
+    if (key === 'moon_tablets') return "Tablet"
   }
 
 

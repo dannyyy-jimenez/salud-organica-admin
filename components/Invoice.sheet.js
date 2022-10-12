@@ -3,15 +3,21 @@ import ActionSheet from "react-native-actions-sheet";
 import { Linking, Platform, ScrollView, Dimensions, Switch, Pressable, Share, TextInput, Image, RefreshControl, StyleSheet, Text, View, TouchableOpacity, SafeAreaView } from 'react-native';
 import { FormatProductNameLong } from './Globals'
 import { Feather } from '@expo/vector-icons';
+import API from '../Api'
+import * as Print from 'expo-print';
+import {Buffer} from "buffer";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
 
 let stylesheet = require('../Styles')
 let styles = stylesheet.Styles;
 
 export default function InvoiceSheet(props) {
-  const [showInvoiceReminders, setShowInvoiceReminders] = React.useState(false)
+  const [showInvoiceReminders, setShowInvoiceReminders] = React.useState(props.payload?.created)
   const [confirmInvoiceDeleteMode, setConfirmInvoiceDeleteMode] = React.useState(false)
   const [invoicePaymentMode, setInvoicePaymentMode] = React.useState(false)
   const [invoiceRemindersSection, setInvoiceRemindersSection] = React.useState("PRINT")
+  const [isLoading, setIsLoading] = React.useState(false)
 
   if (!props.payload?.invoice) {
     return (
@@ -21,8 +27,46 @@ export default function InvoiceSheet(props) {
     )
   }
 
+  const TopUpDelivery = async () => {
+    if (isLoading) return;
+
+    setIsLoading(true);
+
+    try {
+      const res = await API.post('/admin/invoice/actions/topup', {identifier: props.payload?.invoice.distributor.identifier, invoiceId: props.payload?.invoice.identifier});
+      if (res.isError) throw 'error';
+
+      setIsLoading(false);
+    } catch (e) {
+      setIsLoading(false);
+      console.log(e)
+    }
+  }
+
+  const GetPrintableURI = async () => {
+    setIsLoading(true)
+
+    try {
+      const res = await API.get('/admin/invoice/actions/printable', {id: props.payload?.invoice.identifier});
+      console.log(res)
+      if (res.isError) throw 'error';
+
+      const buff = Buffer.from(res.data._f, 'utf-8')
+      let pdf = buff.toString('utf-8')
+
+      setIsLoading(false)
+
+      await Print.printAsync({
+        html: pdf
+      });
+    } catch (e) {
+      setIsLoading(false);
+      console.log(e)
+    }
+  }
+
   return (
-    <ActionSheet headerAlwaysVisible  animated id={props.sheetId} containerStyle={{backgroundColor: stylesheet.Secondary}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} onClose={() => {setConfirmInvoiceDeleteMode(false); setInvoicePaymentMode(false); setShowInvoiceReminders(false); setInvoiceRemindersSection("PRINT")}}>
+    <ActionSheet id={props.sheetId} containerStyle={{backgroundColor: stylesheet.Secondary}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} onClose={() => {setConfirmInvoiceDeleteMode(false); setInvoicePaymentMode(false); setShowInvoiceReminders(false); setInvoiceRemindersSection("PRINT")}}>
       {
         showInvoiceReminders && invoiceRemindersSection === "PRINT" &&
         <View style={{padding: 15, marginBottom: 40}}>

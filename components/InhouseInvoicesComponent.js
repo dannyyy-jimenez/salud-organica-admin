@@ -25,6 +25,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FormatProductNameLong } from './Globals'
 import InvoiceModel from './Invoice.model'
+import {SheetManager} from 'react-native-actions-sheet';
 
 let stylesheet = require('../Styles')
 let styles = stylesheet.Styles;
@@ -436,6 +437,13 @@ export default function InvoicesComponent({navigation, route}) {
 
       let scopified = await load(false, res.data._identifier);
 
+      SheetManager.show('Invoice-Sheet', {
+        payload: {
+          invoice: scopified,
+          delivered: false,
+          created: true
+        }
+      })
       setInvoiceLine([])
       setInvoiceOwnerIdentifier("")
     } catch (e) {
@@ -816,7 +824,7 @@ export default function InvoicesComponent({navigation, route}) {
         {
           !isLoading && invoices.map((invoice) => {
             return (
-              <InvoiceModel topups={topups} data={invoice} />
+              <InvoiceModel key={invoice.identifier} topups={topups} data={invoice} />
             )
           })
         }
@@ -825,8 +833,8 @@ export default function InvoicesComponent({navigation, route}) {
         <Feather name="plus" size={32} color={stylesheet.SecondaryTint} />
       </TouchableOpacity>
 
-      <ActionSheet containerStyle={{paddingBottom: 20, backgroundColor: stylesheet.Secondary}} onClose={() => {setInvoiceAddMode(false); setInvoiceOwnerIdentifier("")}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} ref={invoiceActionSheetRef}>
-        <View style={{marginBottom: 40}}>
+      <ActionSheet headerAlwaysVisible={true} containerStyle={{paddingBottom: 20, backgroundColor: stylesheet.Secondary}} onClose={() => {setInvoiceAddMode(false); setInvoiceOwnerIdentifier("")}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} ref={invoiceActionSheetRef}>
+        <ScrollView scrollable={false} style={{paddingBottom: 40}}>
           <View style={[styles.defaultRowContainer, styles.fullWidth]}>
             <View style={styles.spacer}></View>
             <TouchableOpacity style={{marginLeft: 8, marginRight: 8}} onPress={() => {setInvoiceOwnerIdentifier("")}}>
@@ -1072,7 +1080,7 @@ export default function InvoicesComponent({navigation, route}) {
               </>
             }
           </View>
-        </View>
+        </ScrollView>
       </ActionSheet>
       <ActionSheet onClose={() => {setProductSearchLot(''); setProductSearchIden('')}} containerStyle={{paddingBottom: 20, backgroundColor: stylesheet.Secondary}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} ref={productLotSearchActionSheetRef}>
         <View style={{paddingBottom: 40}}>

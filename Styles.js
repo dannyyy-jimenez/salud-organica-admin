@@ -446,6 +446,7 @@ const Styles = StyleSheet.create({
     }),
     margin: 5,
     minHeight: 80,
+    maxHeight: 110,
     borderRadius: 5,
     padding: 10,
     backgroundColor: SecondaryTint

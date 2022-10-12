@@ -12,6 +12,7 @@ import {
   StackedBarChart
 } from "react-native-chart-kit";
 import { FormatProductName, FormatSerieName } from './Globals'
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 import API from '../Api'
 import moment from 'moment'
@@ -38,6 +39,8 @@ export default function DistributorComponent({navigation, route}) {
   const [editID, setEditID] = React.useState(null)
   const [projections, setProjections] = React.useState(null)
   const [lineProducts, setLineProducts] = React.useState([])
+  const [editDate, setEditDate] = React.useState(null)
+  const [showEditDate, setShowEditDate] = React.useState(false)
 
   const [info, setInfo] = React.useState({})
 
@@ -93,20 +96,23 @@ export default function DistributorComponent({navigation, route}) {
   }, [isLoading])
 
   const onUpdate = async () => {
+
     setIsLoading(true);
 
     try {
-      const res = await API.post('/admin/inventory', {editMode: editMode, editID: editID, identifier: route.params.identifier, line, isDelivery, ...inventories, note: notes});
+      const res = await API.post('/admin/inventory', {editMode: editMode, editID: editID, editDate: editDate, identifier: route.params.identifier, line, isDelivery, ...inventories, note: notes});
 
       if (res.isError) throw 'error';
-
-      actionSheetRef.current?.setModalVisible(false)
 
       setInventories(lineProducts.reduce((o, key) => ({ ...o, [`${line}_${key}`]: 0}), {}))
       setNotes(null)
       setEditID(null)
       setEditMode(false)
       load(true)
+
+      setTimeout(() => {
+        actionSheetRef.current?.setModalVisible(false)
+      }, 500)
 
     } catch (e) {
       setIsLoading(false)
@@ -121,7 +127,7 @@ export default function DistributorComponent({navigation, route}) {
 
       if (res.isError) throw 'error';
 
-      keepSheetRef.current?.setModalVisible(false)
+      layoutSheetRef.current?.setModalVisible(false)
       setInventories(res.data._line_products.reduce((o, key) => ({ ...o, [`${line}_${key}`]: 0}), {}))
 
       setNotes(null)
@@ -139,6 +145,7 @@ export default function DistributorComponent({navigation, route}) {
     setEditID(lin.id)
     setEditMode(true)
     setNotes(lin.note)
+    setEditDate(moment(lin.date_raw).toDate())
     setInventories(prevState => {
       let log = {}
       lineProducts.forEach((product, i) => {
@@ -460,7 +467,7 @@ export default function DistributorComponent({navigation, route}) {
                 }
                 <ProgressChart
                   data={{
-                    labels: progressLog.labels.map(label => FormatProductName(line + "_" + label)), // optional
+                    labels: progressLog.labels.map(label => FormatProductName(line + "_" + label, true)), // optional
                     data: progressLog.data
                   }}
                   width={Dimensions.get("window").width * 0.98}
@@ -485,7 +492,7 @@ export default function DistributorComponent({navigation, route}) {
                       <View style={[styles.statCardM, {flex: 1}]}>
                         <Text style={[styles.subHeaderText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary]}>{progressLog.changes[progressLog.labels.indexOf(label)]}</Text>
                         <View style={styles.spacer}></View>
-                        <Text style={[styles.baseText, styles.fullWidth, styles.centerText, styles.tertiary]}>{FormatProductName(line+"_"+label)}(s)</Text>
+                        <Text style={[styles.baseText, styles.fullWidth, styles.centerText, styles.tertiary]}>{FormatProductName(line+"_"+label, true).pluralize()}</Text>
                         <View style={styles.spacer}></View>
                       </View>
                     )
@@ -563,6 +570,18 @@ export default function DistributorComponent({navigation, route}) {
               value={notes}
               onChangeText={(text) => setNotes(text)}
             />
+            <View style={{width: 140, marginBottom: 20}}>
+              {
+                editMode &&
+                <DateTimePicker
+                  testID="dateTimePicker"
+                  value={editDate}
+                  mode={'date'}
+                  is24Hour={false}
+                  onChange={(event, date) => setEditDate(date)}
+                />
+              }
+            </View>
             <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>Tap Box to Add Product Count</Text>
 
             {

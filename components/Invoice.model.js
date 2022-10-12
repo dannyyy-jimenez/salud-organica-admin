@@ -188,7 +188,7 @@ export default function InvoiceModel(props) {
                   }
                   {
                     line.rate != 0 &&
-                    <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{line.quantity} x ${line.rate / 1000}</Text>
+                    <Text style={[styles.baseText, styles.nunitoText, styles.bold, styles.tertiary]}>{line.quantity} x ${(line.rate / 1000).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
                   }
                 </View>
               )
