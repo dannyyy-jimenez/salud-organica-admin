@@ -112,7 +112,7 @@ export default function DistributorComponent({navigation, route}) {
 
       setTimeout(() => {
         actionSheetRef.current?.setModalVisible(false)
-      }, 500)
+      }, 1000)
 
     } catch (e) {
       setIsLoading(false)

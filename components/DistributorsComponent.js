@@ -140,6 +140,10 @@ export default function Distributors({navigation}) {
         dists = res.data._d.map(distributor => new Distributor(distributor.identifier, distributor.company, distributor.managers, distributor.address, distributor.lines, distributor.lat, distributor.lng, distributor.status, distributor.route, loc ? loc.coords : location ? location.coords : {latitude: 0, longitude: 0}, distributor.issues)).sort((a, b) => b.status - a.status)
       }
 
+      if (dists[0].distance < 0.0804672) {
+        setNearest(dists[0])
+      }
+
       setDefaultDistributors(dists)
 
       if (routeLetter !== "") {
@@ -200,7 +204,7 @@ export default function Distributors({navigation}) {
         return;
       }
 
-      Location.watchPositionAsync({distanceInterval: 1600, accuracy: Location.Accuracy.High, timeInterval: 15000}, (location) => {
+      Location.watchPositionAsync({distanceInterval: 800, accuracy: Location.Accuracy.High}, (location) => {
         if (search !== "") return;
 
         setLocation(location);
@@ -291,6 +295,10 @@ export default function Distributors({navigation}) {
   }, [isLoading])
 
   React.useEffect(() => {
+    setNeedAttention(distributors.filter(d => d.status > 21))
+  }, [distributors])
+
+  React.useEffect(() => {
     if (search === 'OVRD') {
       setDistributors(needAttention)
       return;
@@ -299,16 +307,14 @@ export default function Distributors({navigation}) {
   }, [search])
 
   React.useEffect(() => {
-    if (distributors.length === 0) return;
+    if (defaultDistributors.length === 0) return;
 
-    let sortedByDistance = distributors.slice().sort((a, b) => a.distance - b.distance);
+    let sortedByDistance = defaultDistributors.slice().sort((a, b) => a.distance - b.distance);
     if (sortedByDistance.length > 0 && sortedByDistance[0].distance < 0.0804672) {
       setNearest(sortedByDistance[0])
     } else {
       setNearest(null)
     }
-    setDistributors(sortedByDistance)
-    setNeedAttention(sortedByDistance.filter(d => d.status > 21))
   }, [location])
 
   React.useEffect(() => {
@@ -516,7 +522,7 @@ export default function Distributors({navigation}) {
       }
       {
         !routeMode.active &&
-        <ScrollView style={styles.defaultTabScrollContent} contentContainerStyle={{alignItems: 'flex-start', justifyContent: 'flex-start', width: '90%', marginLeft: '5%', paddingBottom: 70}} refreshControl={<RefreshControl refreshing={isLoading} tintColor={stylesheet.Primary} colors={[stylesheet.Primary]} onRefresh={load} />}>
+        <ScrollView showsVerticalScrollIndicator={false} style={styles.defaultTabScrollContent} contentContainerStyle={{alignItems: 'flex-start', justifyContent: 'flex-start', width: '90%', marginLeft: '5%', paddingBottom: 70}} refreshControl={<RefreshControl refreshing={isLoading} tintColor={stylesheet.Primary} colors={[stylesheet.Primary]} onRefresh={load} />}>
           {
             isLoading &&
             <LottieView
@@ -600,6 +606,17 @@ export default function Distributors({navigation}) {
               </TouchableOpacity>
             </>
           }
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.defaultRowContainer, styles.fullWidth, styles.justifyCenter, {paddingTop: 15, paddingLeft: 15, paddingBottom: 15, paddingRight: 15, height: 'auto'}]}>
+            {
+              routeLetters.map(letter => {
+                return (
+                  <Pressable onPress={() => setRouteLetter(letter)} style={[styles.chip, styles.elevated, routeLetter === letter ? {backgroundColor: stylesheet.Primary} : {}]}>
+                    <Text style={[styles.subHeaderText, styles.bold, routeLetter === letter ? {color: 'white'} : styles.tertiary]}>{FormatRouteLetter(letter)}</Text>
+                  </Pressable>
+                )
+              })
+            }
+          </ScrollView>
           <View style={[styles.defaultRowContainer, styles.fullWidth, styles.justifyCenter, {marginBottom: 20, marginTop: 5, height: 'auto'}]}>
             {
               needAttention.length > 0 &&
@@ -617,17 +634,6 @@ export default function Distributors({navigation}) {
               </View>
             }
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.defaultRowContainer, styles.fullWidth, styles.justifyCenter, {paddingTop: 15, paddingLeft: 15, paddingBottom: 15, paddingRight: 15, height: 'auto'}]}>
-            {
-              routeLetters.map(letter => {
-                return (
-                  <Pressable onPress={() => setRouteLetter(letter)} style={[styles.chip, styles.elevated, routeLetter === letter ? {backgroundColor: stylesheet.Primary} : {}]}>
-                    <Text style={[styles.subHeaderText, styles.bold, routeLetter === letter ? {color: 'white'} : styles.tertiary]}>{FormatRouteLetter(letter)}</Text>
-                  </Pressable>
-                )
-              })
-            }
-          </ScrollView>
           {
             !isLoading && sortBy == 'urgency' &&
             <Text style={[styles.baseText, styles.bold, styles.tertiary]}>By Urgency</Text>
