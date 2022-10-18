@@ -13,6 +13,7 @@ import {
 } from "react-native-chart-kit";
 import { FormatProductName, FormatSerieName } from './Globals'
 import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 
 import API from '../Api'
 import moment from 'moment'
@@ -41,6 +42,7 @@ export default function DistributorComponent({navigation, route}) {
   const [lineProducts, setLineProducts] = React.useState([])
   const [editDate, setEditDate] = React.useState(null)
   const [showEditDate, setShowEditDate] = React.useState(false)
+  const [isDatePickerVisible, setDatePickerVisibility] = React.useState(false);
 
   const [info, setInfo] = React.useState({})
 
@@ -570,18 +572,27 @@ export default function DistributorComponent({navigation, route}) {
               value={notes}
               onChangeText={(text) => setNotes(text)}
             />
-            <View style={{width: 140, marginBottom: 20}}>
-              {
-                editMode &&
-                <DateTimePicker
-                  testID="dateTimePicker"
-                  value={editDate}
-                  mode={'date'}
-                  is24Hour={false}
-                  onChange={(event, date) => setEditDate(date)}
-                />
-              }
-            </View>
+            {
+              editMode &&
+              <View style={{width: 140, marginBottom: 20}}>
+                <Pressable onPress={() => setDatePickerVisibility(true)}>
+                  <Text style={[styles.baseText, styles.bold, styles.marginWidth, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>{editDate?.toLocaleDateString()}</Text>
+                </Pressable>
+                {
+                  isDatePickerVisible &&
+                  <DateTimePickerModal
+                    display="spinner"
+                    buttonTextColorIOS={stylesheet.Primary}
+                    textColor={stylesheet.Primary}
+                    accentColor={stylesheet.Primary}
+                    isVisible={isDatePickerVisible}
+                    mode="date"
+                    onConfirm={(e) => {setEditDate(e);setDatePickerVisibility(false)}}
+                    onCancel={(e) => {setDatePickerVisibility(false)}}
+                  />
+                }
+              </View>
+            }
             <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>Tap Box to Add Product Count</Text>
 
             {

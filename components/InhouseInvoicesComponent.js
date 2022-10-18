@@ -1024,6 +1024,9 @@ export default function InvoicesComponent({navigation, route}) {
                   <>
                     <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Scan Product Container</Text>
                     <BarCodeScanner barCodeTypes={[BarCodeScanner.Constants.BarCodeType.qr]} onBarCodeScanned={({type, data}) => {onProductContainerScan(data)}} style={{position: 'relative', marginTop: 30, marginiBottom: 10, height: 300, width: '100%'}}/>
+                    <Pressable style={[styles.fullWidth, styles.center]} onPress={(() => setInvoiceAddScanMode(false))}>
+                      <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.primary, styles.centerText, {marginTop: 30}]}>Back</Text>
+                    </Pressable>
                   </>
                 }
                 {
