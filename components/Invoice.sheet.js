@@ -1,18 +1,481 @@
 import React from 'react'
 import ActionSheet from "react-native-actions-sheet";
 import { Linking, Platform, ScrollView, Dimensions, Switch, Pressable, Share, TextInput, Image, RefreshControl, StyleSheet, Text, View, TouchableOpacity, SafeAreaView } from 'react-native';
-import { FormatProductNameLong } from './Globals'
+import { FormatProductNameLong, FormatIdentifier } from './Globals'
 import { Feather } from '@expo/vector-icons';
 import API from '../Api'
 import * as Print from 'expo-print';
 import {Buffer} from "buffer";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
+import { Distributor } from './Globals'
+import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { BarCodeScanner } from 'expo-barcode-scanner';
+import LottieView from 'lottie-react-native';
+import {SheetManager} from 'react-native-actions-sheet';
 
 let stylesheet = require('../Styles')
 let styles = stylesheet.Styles;
 
-export default function InvoiceSheet(props) {
+export function NewInvoiceSheet(props) {
+  const [invoiceOwnerIdentifier, setInvoiceOwnerIdentifier] = React.useState('')
+  const [nearestDist, setNearestDist] = React.useState(null)
+  const [distributorSearch, setDistributorSearch] = React.useState('')
+  const [distributors, setDistributors] = React.useState([])
+  const [products, setProducts] = React.useState([])
+  const [invoiceAddMode, setInvoiceAddMode] = React.useState(false)
+  const [location, setLocation] = React.useState(null);
+
+  const [invoiceLine, setInvoiceLine] = React.useState([])
+  const [invoiceLineItemRefIdentifier, setInvoiceLineItemRefIdentifier] = React.useState('')
+  const [invoiceLineItemRefQty, setInvoiceLineItemRefQty] = React.useState('')
+  const [invoiceLineItemRefCost, setInvoiceLineItemRefCost] = React.useState('')
+  const [invoiceLineItemRefLot, setInvoiceLineItemRefLot] = React.useState('')
+  const [invoiceLineItemRefAmount, setInvoiceLineItemRefAmount] = React.useState('')
+  const [invoiceRec, setInvoiceRec] = React.useState({})
+  const [invoiceAddScanMode, setInvoiceAddScanMode] = React.useState(false)
+  const [invoiceAddSearchMode, setInvoiceAddSearchMode] = React.useState(false)
+  const [recentBatchNumber, setRecentBatchNumber] = React.useState('')
+
+  const [isLoading, setIsLoading] = React.useState(true)
+
+  const load = async () => {
+    try {
+      const res = await API.get('/admin/distributors', {});
+      if (res.isError) throw 'error';
+
+      let dists = res.data._d.map(distributor => new Distributor(distributor.identifier, distributor.company, distributor.managers, distributor.address, distributor.lines, distributor.lat, distributor.lng, distributor.status, distributor.route, location?.coords))
+      setDistributors(dists)
+      setProducts(res.data.products);
+      let closest = dists.sort((a, b) => a.distance - b.distance)[0]
+      if (closest.distance < 0.008) {
+        setNearestDist(closest)
+      }
+      if (props.payload?.client) {
+        setInvoiceOwnerIdentifier(props.payload?.client)
+      }
+      setIsLoading(false)
+    } catch (e) {
+      console.log('e', e)
+    }
+  }
+
+  const loadInvoiceRec = async () => {
+    try {
+      const res = await API.get('/admin/distributors/recommendation', {identifier: invoiceOwnerIdentifier});
+
+      if (res.isError) throw 'error';
+
+      setInvoiceRec(res.data._rec)
+    } catch (e) {
+      console.log(e)
+      setInvoiceRec({})
+    }
+  }
+
+  const onCreateInvoice = async () => {
+    setIsLoading(true)
+
+    try {
+      const res = await API.post('/admin/distributor/invoice', {ownerIdentifier: invoiceOwnerIdentifier, line: invoiceLine});
+
+      if (res.isError) throw 'error';
+
+      await SheetManager.hide('New-Invoice-Sheet', {
+        payload: res.data._identifier
+      })
+    } catch (e) {
+      console.log(e)
+      setIsLoading(false)
+    }
+  }
+
+  const onProductContainerScan = (data) => {
+    let parts = data.split('*');
+
+    if (parts.length < 2) return;
+
+    let productIden = FormatIdentifier(parts[0]);
+    let lotNum = parts[1];
+    let scannedProduct = products.find(p => p.identifier === productIden)
+    if  (scannedProduct) {
+        setInvoiceLineItemRefIdentifier(scannedProduct.identifier)
+        setInvoiceLineItemRefLot(lotNum)
+        setInvoiceAddScanMode(false)
+    }
+  }
+
+  const onInvoiceLineRemove = async (idx) => {
+    let copied = invoiceLine.slice();
+    copied.splice(idx, 1)
+    setInvoiceLine(copied)
+  }
+
+  const onAddLineItem = async () => {
+    setInvoiceLine([...invoiceLine, {
+      identifier: invoiceLineItemRefIdentifier,
+      quantity: invoiceLineItemRefQty,
+      cost: invoiceLineItemRefCost,
+      lot: invoiceLineItemRefLot,
+      amount: invoiceLineItemRefAmount
+    }])
+
+    await AsyncStorage.setItem(`LOT_NUM_${invoiceLineItemRefIdentifier}`, invoiceLineItemRefLot)
+
+    setInvoiceAddMode(false)
+    setInvoiceLineItemRefIdentifier('')
+    setInvoiceLineItemRefQty('')
+    setInvoiceLineItemRefCost('')
+    setInvoiceLineItemRefLot('')
+    setInvoiceLineItemRefAmount('')
+  }
+
+  const getRecentBatch = async (identifier) => {
+    try {
+      const recent = await AsyncStorage.getItem(`LOT_NUM_${identifier}`)
+      if (recent !== null) {
+        return recent;
+      }
+      return ''
+    } catch (e) {
+      return ''
+    }
+  }
+
+  React.useEffect(() => {
+    if (!location) return;
+
+    load()
+  }, [location])
+
+  React.useEffect(() => {
+    if (invoiceLineItemRefIdentifier == "" || invoiceLineItemRefCost !== "") return;
+
+    setInvoiceLineItemRefCost(products.find(p => p.identifier === invoiceLineItemRefIdentifier).distributorPrice.toFixed(2))
+    setInvoiceLineItemRefAmount(products.find(p => p.identifier === invoiceLineItemRefIdentifier).distributorPrice * parseInt(invoiceLineItemRefQty))
+    getRecentBatch(invoiceLineItemRefIdentifier).then(lot => {
+      setRecentBatchNumber(lot)
+    })
+
+  }, [invoiceLineItemRefIdentifier])
+
+  React.useEffect(() => {
+    (async () => {
+      await BarCodeScanner.requestPermissionsAsync();
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setErrorMsg('Permission to access location was denied');
+        return;
+      }
+
+      let location = await Location.getCurrentPositionAsync({
+        accuracy: 0
+      });
+      setLocation(location);
+    })();
+  }, [])
+
+  React.useEffect(() => {
+    if (invoiceOwnerIdentifier == "") return;
+
+    loadInvoiceRec()
+  }, [invoiceOwnerIdentifier])
+
+  return (
+    <ActionSheet id={props.sheetId} headerAlwaysVisible={true} containerStyle={{paddingBottom: 20, backgroundColor: stylesheet.Secondary}} onClose={() => {setInvoiceAddMode(false); setInvoiceOwnerIdentifier("")}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true}>
+      <ScrollView scrollable={false} style={{paddingBottom: 40}}>
+        <View style={[styles.defaultRowContainer, styles.fullWidth]}>
+          <View style={styles.spacer}></View>
+          <TouchableOpacity style={{marginLeft: 8, marginRight: 8}} onPress={() => {setInvoiceOwnerIdentifier("")}}>
+            <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary, {marginTop: 10}]}>New Invoice <Text style={styles.primary}>{invoiceOwnerIdentifier && distributors.find(d => d.identifier === invoiceOwnerIdentifier) ? `for ${distributors.find(d => d.identifier === invoiceOwnerIdentifier).company}`: ''}</Text></Text>
+          </TouchableOpacity>
+          <View style={styles.spacer}></View>
+        </View>
+        <View style={styles.line}></View>
+        <View style={[styles.paddedWidth, styles.defaultColumnContainer]}>
+          {
+            invoiceOwnerIdentifier === "" && nearestDist && distributors.length > 0 &&
+            <>
+              <Text style={[styles.subHeaderText, styles.bold, styles.tertiary, styles.centerText]}>Create invoice for nearest retailer?</Text>
+
+              <Text style={[styles.baseText, styles.bold, styles.tertiary, styles.centerText, {marginTop: 40}]}>You're very close to {nearestDist.company}</Text>
+              <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {marginTop: 30, marginBottom: 10}]}>
+                <TouchableOpacity
+                  onPress={() => setPromptInvoiceForNearestDist(false)}
+                  underlayColor='#fff'
+                  style={{marginLeft: 15, marginRight: 15}}>
+                  <Feather name="x" size={32} color={stylesheet.Primary} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setInvoiceOwnerIdentifier(nearestDist.identifier)}
+                  underlayColor='#fff'
+                  style={{marginLeft: 15, marginRight: 15}}>
+                  <Feather name="check" size={32} color={stylesheet.Primary} />
+                </TouchableOpacity>
+              </View>
+            </>
+          }
+
+          {
+            invoiceOwnerIdentifier === "" && !nearestDist && isLoading &&
+            <>
+              <LottieView
+                  style={{
+                    backgroundColor: '#fff',
+                    width: '50%',
+                    marginTop: 20,
+                    marginLeft: '12%',
+                    marginBottom: 40
+                  }}
+                  autoPlay
+                  loop
+                  source={require('../assets/loading-leaf.json')}
+                  // OR find more Lottie files @ https://lottiefiles.com/featured
+                  // Just click the one you like, place that file in the 'assets' folder to the left, and replace the above 'require' statement
+                />
+            </>
+          }
+
+          {
+            invoiceOwnerIdentifier === "" && !nearestDist && !isLoading &&
+            <>
+              <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Retailer</Text>
+              <TextInput
+                placeholderTextColor="#888"
+                style={[{marginTop: 25,  marginBottom: 20, width: '100%'}, styles.baseInput]}
+                placeholder="Find retailer..."
+                keyboardType="default"
+                value={distributorSearch}
+                onChangeText={(text) => {
+                  setDistributorSearch(text)
+                }}
+              />
+              <ScrollView style={{height: 200}}>
+                {
+                  distributors.filter(dist => dist.company.toLowerCase().replace(/[\"'!@#$%^&*()ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž ]/g, "").includes(distributorSearch.toLowerCase().replace(/[\"'!@#$%^&*()ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž ]/g, ""))).map(distributor => {
+                    return (
+                      <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setInvoiceOwnerIdentifier(distributor.identifier)}}>
+                        <Text style={[styles.baseText, styles.tertiary]}>{distributor.company} - {distributor.managers.join(', ')}</Text>
+                      </TouchableOpacity>
+                    )
+                  })
+                }
+              </ScrollView>
+            </>
+          }
+
+          {
+            invoiceOwnerIdentifier !== "" && !invoiceAddMode &&
+            <>
+              <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Products</Text>
+              {
+                invoiceLine.map((invoiceLineItem, idx) => {
+                  return (
+                    <>
+                      <View style={[styles.defaultRowContainer, styles.fullWidth, {marginTop: 5, marginBottom: 5}]}>
+                        <Text style={[styles.baseText, styles.nunitoText, styles.tertiary]}>{FormatProductNameLong(products.find(p => p.identifier === invoiceLineItem.identifier))}</Text>
+                        <View style={styles.spacer}></View>
+                        {
+                          invoiceLineItem.cost == 0 &&
+                          <Text style={[styles.baseText, styles.nunitoText, styles.tertiary]}>{invoiceLineItem.quantity} x FREE</Text>
+                        }
+                        {
+                          invoiceLineItem.cost != 0 &&
+                          <Text style={[styles.baseText, styles.nunitoText, styles.tertiary]}>{invoiceLineItem.quantity} x ${invoiceLineItem.cost.toLocaleString()}</Text>
+                        }
+                        <Pressable onPress={() => onInvoiceLineRemove(idx)} style={{bottom: 2, marginLeft: 10}}>
+                          <Feather name="x" size={24} color='red' />
+                        </Pressable>
+                      </View>
+                    </>
+                  )
+                })
+              }
+              <TouchableOpacity onPress={() => setInvoiceAddMode(true)} style={[{marginLeft: '7.5%', marginBottom: 50, marginTop: 10}]}>
+                <Text style={[styles.primary, styles.bold, {fontSize: 18}]}>Add Product</Text>
+              </TouchableOpacity>
+
+
+              {
+                invoiceLine.length > 0 &&
+                <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Total: ${(invoiceLine.reduce((total, next) => total += next.amount, 0)).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
+              }
+              {
+                invoiceLine.length > 0 && !isLoading &&
+                <TouchableOpacity onPress={() => onCreateInvoice()} style={[styles.roundedButton, styles.filled, {marginLeft: '7.5%', marginTop: 20}]}>
+                  <Text style={[styles.secondary, styles.bold]}>Create Invoice</Text>
+                </TouchableOpacity>
+              }
+              {
+                invoiceLine.length > 0 && isLoading &&
+                <LottieView
+                    style={{
+                      backgroundColor: '#fff',
+                      width: '50%',
+                      marginTop: 20,
+                      marginLeft: '12%',
+                      marginBottom: 40
+                    }}
+                    autoPlay
+                    loop
+                    source={require('../assets/loading-wait.json')}
+                    // OR find more Lottie files @ https://lottiefiles.com/featured
+                    // Just click the one you like, place that file in the 'assets' folder to the left, and replace the above 'require' statement
+                  />
+              }
+            </>
+          }
+
+          {
+            invoiceOwnerIdentifier !== "" && invoiceAddMode &&
+            <>
+              {
+                invoiceRec[invoiceLineItemRefIdentifier] > 0 &&
+                <Text style={[styles.baseText, styles.bold, styles.centerText, styles.opaque, styles.tertiary, {marginBottom: 20}]}>Based on previous inventory data the <Text style={styles.primary}>recommended delivery quantity is {invoiceRec[invoiceLineItemRefIdentifier]}</Text></Text>
+              }
+              {
+                invoiceLineItemRefIdentifier != "" && !invoiceAddScanMode && !invoiceAddSearchMode &&
+                <>
+                  <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Product</Text>
+                  <Text style={[{marginTop: 10}, styles.baseText, styles.tertiary]}>{FormatProductNameLong(products.find(p => p.identifier === invoiceLineItemRefIdentifier))}</Text>
+                  <Image style={{ marginTop: 20, width: 120, height: 120}} resizeMode="contain" source={{uri: 'https://res.cloudinary.com/cbd-salud-sativa/image/upload/f_auto,q_auto,w_100/' + products.find(p => p.identifier === invoiceLineItemRefIdentifier).shot}}></Image>
+                  <Text style={[styles.baseText, styles.bold, styles.tertiary, {marginTop: 20}]}>Lot Number</Text>
+                  <Text style={[styles.baseText, styles.tertiary, {marginBottom: 20}]}>#{invoiceLineItemRefLot}</Text>
+                </>
+              }
+
+              {
+                invoiceLineItemRefIdentifier == "" && !invoiceAddScanMode && !invoiceAddSearchMode &&
+                <>
+                  <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Product</Text>
+                  <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {marginTop: 10, marginBottom: 10}]}>
+                    <TouchableOpacity
+                      onPress={() => setInvoiceAddScanMode(true)}
+                      underlayColor='#fff'
+                      style={[{marginLeft: 15, marginRight: 15}, styles.center]}>
+                      <Feather name="maximize" size={26} color={stylesheet.Primary} />
+                      <Text style={{marginTop: 5, fontSize: 12, color: stylesheet.Primary}}>Scan Product</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setInvoiceAddSearchMode(true)}
+                      underlayColor='#fff'
+                      style={[{marginLeft: 15, marginRight: 15}, styles.center]}>
+                      <Feather name="edit" size={26} color={stylesheet.Primary} />
+                      <Text style={{marginTop: 5, fontSize: 12, color: stylesheet.Primary}}>Pick Item</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              }
+
+              {
+                !invoiceAddScanMode && !invoiceAddSearchMode &&
+                <>
+
+                  <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Quantity</Text>
+                  <TextInput
+                    placeholderTextColor="#888"
+                    style={[{marginTop: 5,  marginBottom: 20, width: '100%'}, styles.baseInput]}
+                    placeholder="Enter quantity..."
+                    keyboardType="numeric"
+                    value={invoiceLineItemRefQty}
+                    onChangeText={(text) => {
+                      setInvoiceLineItemRefQty(text)
+                      setInvoiceLineItemRefAmount(parseFloat(invoiceLineItemRefCost) * parseInt(text))
+                    }}
+                  />
+
+                  <View style={[styles.fullWidth, styles.defaultRowContainer]}>
+                    <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Cost</Text>
+                    <View style={styles.spacer}></View>
+                    <Pressable onPress={() => {setInvoiceLineItemRefCost("0"); setInvoiceLineItemRefAmount(0)}}>
+                      <Text style={[styles.baseText, styles.bold, styles.primary]}>FREE</Text>
+                    </Pressable>
+                  </View>
+                  <TextInput
+                    placeholderTextColor="#888"
+                    style={[{marginTop: 5,  marginBottom: 20, width: '100%'}, styles.baseInput]}
+                    placeholder="Enter cost..."
+                    keyboardType="numeric"
+                    value={invoiceLineItemRefCost}
+                    onChangeText={(text) => {
+                      setInvoiceLineItemRefCost(text);
+                      setInvoiceLineItemRefAmount(parseFloat(text) * parseInt(invoiceLineItemRefQty))
+                    }}
+                  />
+                </>
+              }
+
+              {
+               invoiceAddScanMode &&
+                <>
+                  <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Scan Product Container</Text>
+                  <BarCodeScanner barCodeTypes={[BarCodeScanner.Constants.BarCodeType.qr]} onBarCodeScanned={({type, data}) => {onProductContainerScan(data)}} style={{position: 'relative', marginTop: 30, marginiBottom: 10, height: 300, width: '100%'}}/>
+                  <Pressable style={[styles.fullWidth, styles.center]} onPress={(() => setInvoiceAddScanMode(false))}>
+                    <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.primary, styles.centerText, {marginTop: 30}]}>Back</Text>
+                  </Pressable>
+                </>
+              }
+              {
+                invoiceAddSearchMode &&
+                <>
+                  <View style={[styles.fullWidth, styles.defaultRowContainer]}>
+                    <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Lot Number #</Text>
+                    <View style={styles.spacer}></View>
+                    {
+                      recentBatchNumber !== "" &&
+                      <Pressable onPress={() => {setInvoiceLineItemRefLot(recentBatchNumber); setRecentBatchNumber('')}}>
+                        <Text style={[styles.baseText, styles.bold, styles.primary]}>{recentBatchNumber}</Text>
+                      </Pressable>
+                    }
+                  </View>
+                  <TextInput
+                    placeholderTextColor="#888"
+                    style={[{marginTop: 10,  marginBottom: 20, width: '100%'}, styles.baseInput]}
+                    placeholder="Enter lot number..."
+                    keyboardType="numeric"
+                    value={invoiceLineItemRefLot}
+                    onChangeText={(text) => {
+                      setInvoiceLineItemRefLot(text.toString());
+                    }}
+                  />
+                  <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Product</Text>
+                  <ScrollView style={{height: 280, marginTop: 10}} contentContainerStyle={[styles.defaultRowContainer, {flexWrap: 'wrap', justifyContent: 'space-around'}]}>
+                    {
+                      products.filter(p => p.sku).map(product => {
+                        return (
+                          <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setInvoiceLineItemRefIdentifier(product.identifier);}}>
+                            <Image style={{ width: 120, height: 120, backgroundColor: product.identifier === invoiceLineItemRefIdentifier ? stylesheet.Primary : 'white'}} resizeMode="contain" source={{uri: 'https://res.cloudinary.com/cbd-salud-sativa/image/upload/f_auto,q_auto,w_100/' + product.shot}}></Image>
+                          </TouchableOpacity>
+                        )
+                      })
+                    }
+                  </ScrollView>
+
+                  {
+                    invoiceLineItemRefLot !== "" && invoiceLineItemRefIdentifier !== "" &&
+                    <TouchableOpacity onPress={() => setInvoiceAddSearchMode(false)} style={[styles.roundedButton, styles.filled, {marginLeft: '7.5%', marginTop: 40}]}>
+                      <Text style={[styles.secondary, styles.bold]}>Add Product Reference</Text>
+                    </TouchableOpacity>
+                  }
+                </>
+              }
+
+              {
+                invoiceLineItemRefIdentifier !== "" && invoiceLineItemRefQty !== "" && parseInt(invoiceLineItemRefQty) > 0 && invoiceLineItemRefCost !== "" && invoiceLineItemRefLot !== "" && !invoiceAddSearchMode &&
+                <TouchableOpacity onPress={onAddLineItem} style={[styles.roundedButton, styles.filled, {marginLeft: '7.5%', marginTop: 40}]}>
+                  <Text style={[styles.secondary, styles.bold]}>Add Line Item</Text>
+                </TouchableOpacity>
+              }
+            </>
+          }
+        </View>
+      </ScrollView>
+    </ActionSheet>
+  )
+}
+
+export function InvoiceSheet(props) {
   const [showInvoiceReminders, setShowInvoiceReminders] = React.useState(props.payload?.created)
   const [confirmInvoiceDeleteMode, setConfirmInvoiceDeleteMode] = React.useState(false)
   const [invoicePaymentMode, setInvoicePaymentMode] = React.useState(false)
@@ -48,7 +511,6 @@ export default function InvoiceSheet(props) {
 
     try {
       const res = await API.get('/admin/invoice/actions/printable', {id: props.payload?.invoice.identifier});
-      console.log(res)
       if (res.isError) throw 'error';
 
       const buff = Buffer.from(res.data._f, 'utf-8')

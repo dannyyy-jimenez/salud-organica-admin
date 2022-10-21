@@ -14,6 +14,8 @@ import {
 import { FormatProductName, FormatSerieName } from './Globals'
 import DateTimePicker from '@react-native-community/datetimepicker';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import {SheetManager} from 'react-native-actions-sheet';
+import InvoiceModel from './Invoice.model'
 
 import API from '../Api'
 import moment from 'moment'
@@ -43,6 +45,11 @@ export default function DistributorComponent({navigation, route}) {
   const [editDate, setEditDate] = React.useState(null)
   const [showEditDate, setShowEditDate] = React.useState(false)
   const [isDatePickerVisible, setDatePickerVisibility] = React.useState(false);
+  const [menuVisible, setMenuVisible] = React.useState(true)
+  const [invoicesStatus, setInvoicesStatus] = React.useState("")
+  const [invoices, setInvoices] = React.useState([])
+  const [topups, setTopUps] = React.useState([])
+  const [showInvoices, setShowInvoices] = React.useState(false);
 
   const [info, setInfo] = React.useState({})
 
@@ -64,8 +71,9 @@ export default function DistributorComponent({navigation, route}) {
 
     try {
       const res = await API.get('/admin/inventory', {identifier: route.params.identifier, line: line, rangeBegin, rangeEnd});
+      const invoicesReq = await API.get('/admin/invoices', {distributor: route.params.identifier})
 
-      if (res.isError) throw 'error';
+      if (res.isError || invoicesReq.isError) throw 'error';
 
       setInventory(res.data._i)
       setLines(res.data._l)
@@ -74,7 +82,6 @@ export default function DistributorComponent({navigation, route}) {
       setNotes(null)
       setLineProducts(res.data._line_products)
       setInfo(res.data._info)
-      setIsLoading(false)
       setProjections(res.data._projections)
 
       setInventories(res.data._line_products.reduce((o, key) => ({ ...o, [`${res.data._line}_${key}`]: 0}), {}))
@@ -84,6 +91,27 @@ export default function DistributorComponent({navigation, route}) {
       }
 
       // TODO:  needs treshold
+
+      setInvoices(invoicesReq.data.invoices);
+      setTopUps(invoicesReq.data.topups)
+
+      let due = invoicesReq.data.invoices.filter(i => i.dueDays < 1 && !i.paid);
+      let pending = invoicesReq.data.invoices.filter(i => i.dueDays > 0 && !i.paid);
+      let statusArr = []
+      if (due.length > 0) {
+        statusArr.push(`${due.length} Due`)
+      }
+      if (pending.length > 0) {
+        statusArr.push(`${pending.length} Pending`)
+      }
+      setInvoicesStatus(statusArr.join(', '))
+
+      // find invoices rundown
+
+      setIsLoading(false)
+
+      console.log(invoicesReq.data.invoices)
+
     } catch (e) {
       console.log(e)
       setIsLoading(false)
@@ -278,6 +306,51 @@ export default function DistributorComponent({navigation, route}) {
     }
   }
 
+  const loadInvoices = async () => {
+    try {
+      const res = await API.get('/admin/invoices', {distributor: route.params.identifier});
+      if (!res) throw 'error'
+
+      setInvoices(res.data._invoices)
+    } catch (e) {
+      onCreateIntent()
+    }
+  }
+
+  const onCreateIntent = async () => {
+    let created = await SheetManager.show('New-Invoice-Sheet', {
+      payload: {
+        client: route.params.identifier
+      }
+    })
+
+    if (created) {
+      loadInvoice(created)
+    }
+  }
+
+  const loadInvoice = async (identifier) => {
+    try {
+      const res = await API.get('/admin/invoice', {identifier: identifier});
+      if (!res) throw 'error'
+
+      SheetManager.show('Invoice-Sheet', {
+        payload: {
+          invoice: res.data._invoice,
+          delivered: res.data.topped,
+          created: true
+        }
+      })
+    } catch (e) {
+      onCreateIntent()
+    }
+  }
+
+  const onLinePick = async (line) => {
+    setLine(line)
+    setMenuVisible(false)
+  }
+
   React.useEffect(() => {
     if (!rangeBegin && !rangeEnd) {
       load()
@@ -285,6 +358,12 @@ export default function DistributorComponent({navigation, route}) {
       load()
     }
   }, [rangeEnd, line])
+
+  React.useEffect(() => {
+    if (menuVisible) {
+      setShowInvoices(false)
+    }
+  }, [menuVisible])
 
   return (
     <SafeAreaView style={styles.defaultTabContainer}>
@@ -304,14 +383,17 @@ export default function DistributorComponent({navigation, route}) {
           <Text style={[styles.baseText, styles.bold, styles.primary]}>Inventory for {route.params.company}</Text>
         }
         <View style={styles.spacer}></View>
-        <TouchableOpacity
-          onPress={() => infoSheetRef.current?.setModalVisible(true)}
-          underlayColor='#fff'
-          style={{marginRight: 10}}>
-          <Feather name="info" size={24} color={stylesheet.Primary} />
-        </TouchableOpacity>
+        {
+          !menuVisible &&
+          <TouchableOpacity
+            onPress={() => setMenuVisible(true)}
+            underlayColor='#fff'
+            style={{marginRight: 10}}>
+            <Feather name="menu" size={24} color={stylesheet.Primary} />
+          </TouchableOpacity>
+        }
       </View>
-      <ScrollView style={[styles.defaultTabScrollContent]} contentContainerStyle={{alignItems: 'center', width: '98%', marginLeft: '1%', paddingBottom: Platform.OS === 'android' ? 100 : 60, justifyContent: 'space-between', flexDirection: 'row', flexWrap: 'wrap'}} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={isLoading} tintColor={stylesheet.Primary} colors={[stylesheet.Primary]} onRefresh={load} />}>
+      <ScrollView style={styles.defaultTabScrollContent} contentContainerStyle={{alignItems: 'center', justifyContent: 'flex-start', width: '100%', paddingBottom: 70}} refreshControl={<RefreshControl refreshing={isLoading} tintColor={"white"} colors={[stylesheet.Primary]} onRefresh={load} />}>
         {
           (isLoading || inventory.length < 1) &&
           <LottieView
@@ -324,32 +406,74 @@ export default function DistributorComponent({navigation, route}) {
             />
         }
         {
-          !isLoading && inventory.length > 0 &&
+          !isLoading && menuVisible &&
+          <View style={[styles.defaultRowContainer, styles.fullHeight, styles.fullWidth, {flexWrap: 'wrap', justifyContent: 'space-around', paddingTop: 15}]}>
+            <TouchableOpacity onPress={() => infoSheetRef.current?.setModalVisible(true)}>
+              <View style={[{width: 150, height: 200, margin: 5, marginBottom: 20, backgroundColor: 'white', borderRadius: 4, padding: 10}, styles.elevated, styles.center, styles.defaultColumnContainer]}>
+                <Image style={{height: 100, width: 100, margin: 4, resizeMode: 'contain'}} source={require('../assets/desc-icon.png')} />
+                <Text style={[styles.tinyText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15}]}>Description</Text>
+                <Text style={[styles.miniText, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 2}]}>{route.params.identifier}</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => managersUpkeepActionsheetRef.current?.setModalVisible(true)}>
+              <View style={[{width: 150, height: 200, margin: 5, marginBottom: 20, backgroundColor: 'white', borderRadius: 4, padding: 10}, styles.elevated, styles.center, styles.defaultColumnContainer]}>
+                <Image style={{height: 100, width: 100, margin: 4, resizeMode: 'contain'}} source={require('../assets/team-icon.png')} />
+                <Text style={[styles.tinyText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15}]}>Staff</Text>
+                <Text style={[styles.miniText, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 2}]}>{info?.managers.join(',')}</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => {setMenuVisible(false); setShowInvoices(true)}}>
+              <View style={[{width: 150, height: 200, margin: 5, marginBottom: 20, backgroundColor: 'white', borderRadius: 4, padding: 10}, styles.elevated, styles.center, styles.defaultColumnContainer]}>
+                <Image style={{height: 100, width: 100, margin: 4, resizeMode: 'contain'}} source={require('../assets/invoice-icon.png')} />
+                <Text style={[styles.tinyText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15}]}>Invoices</Text>
+                <Text style={[styles.miniText, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 2}]}>{invoicesStatus}</Text>
+              </View>
+            </TouchableOpacity>
+            {
+              lines.includes('herencia') &&
+              <TouchableOpacity onPress={() => onLinePick('herencia')}>
+                <View style={[{width: 150, height: 200, margin: 5, marginBottom: 20, backgroundColor: 'white', borderRadius: 4, padding: 10}, styles.elevated, styles.center, styles.defaultColumnContainer]}>
+                  <Image style={{height: 100, width: 100, margin: 4, resizeMode: 'contain'}} source={{uri: `https://res.cloudinary.com/cbd-salud-sativa/image/upload/v1616525507/characters/abuelo.png`}} />
+                  <Text style={[styles.tinyText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15}]}>{FormatSerieName('herencia')}</Text>
+                  <Text style={[styles.miniText, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 2}]}>{info.herencia_displays || 0} Displays</Text>
+                </View>
+              </TouchableOpacity>
+            }
+            {
+              lines.includes('moon') &&
+              <TouchableOpacity onPress={() => onLinePick('moon')}>
+                <View style={[{width: 150, height: 200, margin: 5, marginBottom: 20, backgroundColor: 'white', borderRadius: 4, padding: 10}, styles.elevated, styles.center, styles.defaultColumnContainer]}>
+                  <Image style={{height: 100, width: 100, margin: 4, resizeMode: 'contain'}} source={{uri: `https://res.cloudinary.com/cbd-salud-sativa/image/upload/v1616525507/characters/rabbit.png`}} />
+                  <Text style={[styles.tinyText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15}]}>{FormatSerieName('moon')}</Text>
+                  <Text style={[styles.miniText, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 2}]}>{info.moon_displays || 0} Displays</Text>
+                </View>
+              </TouchableOpacity>
+            }
+            {
+              lines.includes('edgybear') &&
+              <TouchableOpacity onPress={() => onLinePick('edgybear')}>
+                <View style={[{width: 150, height: 200, backgroundColor: 'white', borderRadius: 4, padding: 10}, styles.elevated, styles.center, styles.defaultColumnContainer]}>
+                  <Image style={{height: 100, width: 100, margin: 4, resizeMode: 'contain'}} source={{uri: `https://res.cloudinary.com/cbd-salud-sativa/image/upload/v1616525507/characters/edgybear.png`}} />
+                  <Text style={[styles.tinyText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15}]}>{FormatSerieName('edgybear')}</Text>
+                  <Text style={[styles.miniText, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 2}]}>{info.edgybear_displays || 0} Displays</Text>
+                </View>
+              </TouchableOpacity>
+            }
+          </View>
+        }
+        {
+          !isLoading && !menuVisible && showInvoices && invoices.map((invoice) => {
+            return (
+              <InvoiceModel key={invoice.identifier} topups={topups} data={invoice} />
+            )
+          })
+        }
+        {
+          !isLoading && !menuVisible && !showInvoices && inventory.length > 0 &&
           <>
-            <View style={[styles.defaultRowContainer, styles.center, styles.wrap, styles.fullWidth]}>
-              {
-                lines.includes('herencia') && lines.length > 1 &&
-                <Pressable onPress={() => setLine('herencia')}>
-                  <Image style={{height: 60, width: 60, opacity: line === 'herencia' ? 0.8 : 0.2, margin: 4, resizeMode: 'contain'}} source={{uri: `https://res.cloudinary.com/cbd-salud-sativa/image/upload/v1616525507/characters/abuelo.png`}} />
-                </Pressable>
-              }
-              {
-                lines.includes('moon') && lines.length > 1 &&
-                <Pressable onPress={() => setLine('moon')}>
-                  <Image style={{height: 60, width: 60, opacity: line === 'moon' ? 0.8 : 0.2, margin: 4, resizeMode: 'contain'}} source={{uri: `https://res.cloudinary.com/cbd-salud-sativa/image/upload/v1616525507/characters/rabbit.png`}} />
-                </Pressable>
-              }
-              {
-                lines.includes('edgybear') && lines.length > 1 &&
-                <Pressable onPress={() => setLine('edgybear')}>
-                  <Image style={{height: 60, width: 60, opacity: line === 'edgybear' ? 0.8 : 0.2, margin: 4, resizeMode: 'contain'}} source={{uri: `https://res.cloudinary.com/cbd-salud-sativa/image/upload/v1616525507/characters/edgybear.png`}} />
-                </Pressable>
-              }
-            </View>
-
             {
               inventory.length > 1 &&
-              <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>Timelapse of Inventory</Text>
+              <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>{FormatSerieName(line)} Timelapse</Text>
             }
             {
               inventory.length > 1 &&
@@ -408,7 +532,7 @@ export default function DistributorComponent({navigation, route}) {
             {
               projections && inventory.length > 0 &&
               <>
-                <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>Inventory Projections</Text>
+                <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>{FormatSerieName(line)} Projections</Text>
                 <LineChart
                   data={{
                     labels: ["", moment(projections[7].date).format('MM/DD'), moment(projections[14].date).format('MM/DD'), moment(projections[21].date).format('MM/DD')],
@@ -521,7 +645,7 @@ export default function DistributorComponent({navigation, route}) {
               </>
             }
 
-            <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 55}]}>Most Recent Logs</Text>
+            <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 55}]}>{FormatSerieName(line)} Logs</Text>
             {
               inventory.slice(0, 5).map((lin, idx) => {
                 return (
@@ -551,13 +675,26 @@ export default function DistributorComponent({navigation, route}) {
         }
       </ScrollView>
 
+      {
+        !menuVisible && !showInvoices && line !== "" &&
+        <>
+          <TouchableOpacity onPress={() => layoutSheetRef.current?.setModalVisible(true)} style={[styles.center, styles.fab, {bottom: 80}]}>
+            <Feather name="layout" size={22} color={stylesheet.SecondaryTint} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => actionSheetRef.current?.setModalVisible(true)} style={[styles.center, styles.fab]}>
+            <Feather name="sliders" size={22} color={stylesheet.SecondaryTint} />
+          </TouchableOpacity>
+        </>
+      }
+      {
+        !menuVisible && showInvoices &&
+        <>
+          <TouchableOpacity onPress={onCreateIntent} style={[styles.center, styles.fab]}>
+            <Feather name="file-plus" size={22} color={stylesheet.SecondaryTint} />
+          </TouchableOpacity>
+        </>
+      }
 
-      <TouchableOpacity onPress={() => navigation.navigate("Invoices", {screen: "InboxInhouseInvoices", params: {invoiceOwnerIdentifier: route.params.identifier}})} style={[styles.center, styles.fab, {bottom: 80}]}>
-        <Feather name="file-plus" size={22} color={stylesheet.SecondaryTint} />
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => actionSheetRef.current?.setModalVisible(true)} style={[styles.center, styles.fab]}>
-        <Feather name="sliders" size={22} color={stylesheet.SecondaryTint} />
-      </TouchableOpacity>
 
       <ActionSheet containerStyle={{paddingBottom: 20, backgroundColor: stylesheet.Secondary}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} ref={actionSheetRef}>
         <View style={{marginBottom: 30}}>
@@ -645,18 +782,6 @@ export default function DistributorComponent({navigation, route}) {
               style={[{marginLeft: 10, marginRight: 10}, styles.center]}>
               <Feather name="bar-chart-2" size={26} color={stylesheet.Primary} />
               <Text style={{marginTop: 5, fontSize: 12, color: stylesheet.Primary}}>Analytics</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => {infoSheetRef.current?.setModalVisible(false); setTimeout(() => layoutSheetRef.current?.setModalVisible(true), 500)}}
-              underlayColor='#fff' style={[{marginLeft: 10, marginRight: 10}, styles.center]}>
-              <Feather name="layout" size={24} color={stylesheet.Primary} />
-              <Text style={{marginTop: 5, fontSize: 12, color: stylesheet.Primary}}>Layout</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => {infoSheetRef.current?.setModalVisible(false); setTimeout(() => managersUpkeepActionsheetRef.current?.setModalVisible(true), 500)}}
-              underlayColor='#fff' style={[{marginLeft: 10, marginRight: 10}, styles.center]}>
-              <Feather name="users" size={24} color={stylesheet.Primary} />
-              <Text style={{marginTop: 5, fontSize: 12, color: stylesheet.Primary}}>Managers</Text>
             </TouchableOpacity>
           </View>
         </View>

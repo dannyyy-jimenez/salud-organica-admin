@@ -1,3 +1,5 @@
+import haversine from 'haversine-distance'
+
 String.prototype.pluralize = function() {
 
   let esEndings = ["s", "x", "z"]
@@ -51,4 +53,40 @@ export const FormatProductName = (key, omitSerie = false) => {
 
 export const FormatProductNameLong = (item) => {
   return FormatProductName(item.serie.identifier + "_" + item.identifier)
+}
+
+export const FormatIdentifier = (identifier) => {
+  if (identifier == 'topical_cream') return 'cream'
+
+  return identifier;
+}
+
+export class Distributor {
+  constructor(identifier, company, managers, address, lines, lat, lng, status, route, location) {
+    this.identifier = identifier;
+    this.company = company;
+    this.managers = managers;
+    this.address = address;
+    this.lines = lines;
+    this.lat = lat;
+    this.lng = lng;
+    this.location = location;
+    this.status = status;
+    this.route = route;
+    this.distance = this.CalculateDistance()
+  }
+
+  CalculateDistance() {
+    let coords = {
+      lat: this.lat,
+      lng: this.lng
+    }
+    let user = {
+      lat: this.location?.latitude,
+      lng: this.location?.longitude
+    }
+
+    return haversine(coords, user) / 3961 // returns distance in km
+  }
+
 }
