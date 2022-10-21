@@ -110,8 +110,6 @@ export default function DistributorComponent({navigation, route}) {
 
       setIsLoading(false)
 
-      console.log(invoicesReq.data.invoices)
-
     } catch (e) {
       console.log(e)
       setIsLoading(false)
@@ -395,7 +393,7 @@ export default function DistributorComponent({navigation, route}) {
       </View>
       <ScrollView style={styles.defaultTabScrollContent} contentContainerStyle={{alignItems: 'center', justifyContent: 'flex-start', width: '100%', paddingBottom: 70}} refreshControl={<RefreshControl refreshing={isLoading} tintColor={"white"} colors={[stylesheet.Primary]} onRefresh={load} />}>
         {
-          (isLoading || inventory.length < 1) &&
+          (isLoading || (inventory.length < 1 && !menuVisible)) &&
           <LottieView
               ref={animationRef}
               style={{

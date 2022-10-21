@@ -20,7 +20,7 @@ function getEnvVars() {
   if (Updates.releaseChannel.startsWith('staging')) return ENV.staging;
   if (Updates.releaseChannel.startsWith('prod')) return ENV.prod;
 
-  return ENV.dev;
+  return ENV.prod;
 }
 
 export default getEnvVars();

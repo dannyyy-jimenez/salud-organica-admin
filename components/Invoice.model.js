@@ -236,7 +236,7 @@ export default function InvoiceModel(props) {
           {
             invoice.paid &&
             <View style={{position: 'absolute', left: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopRightRadius: 5, borderBottomLeftRadius: 5, backgroundColor: stylesheet.Primary}}>
-              <Text style={[styles.tinyText, styles.bold, styles.center, {color: 'white', marginTop: 2}]}>PAID {invoice.payments[0].date}</Text>
+              <Text style={[styles.tinyText, styles.bold, styles.center, {color: 'white', marginTop: 2}]}>PAID {invoice.payments.length > 0 ? invoice.payments[0].date : ''}</Text>
             </View>
           }
           <View style={{position: 'absolute', right: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopLeftRadius: 5, borderBottomRightRadius: 5, backgroundColor: invoice.dueDays > 0 || invoice.paid ? stylesheet.Primary : 'red'}}>
