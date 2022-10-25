@@ -55,6 +55,9 @@ export function NewInvoiceSheet(props) {
       if (props.payload?.client) {
         setInvoiceOwnerIdentifier(props.payload?.client)
       }
+      if (props.payload?.editMode) {
+        loadEditorMode(props.payload?.editing)
+      }
       setIsLoading(false)
     } catch (e) {
       console.log('e', e)
@@ -85,6 +88,31 @@ export function NewInvoiceSheet(props) {
       await SheetManager.hide('New-Invoice-Sheet', {
         payload: res.data._identifier
       })
+    } catch (e) {
+      console.log(e)
+      setIsLoading(false)
+    }
+  }
+
+  const onUpdateInvoice = async () => {
+    setIsLoading(true)
+
+    try {
+      const res = await API.post('/admin/invoice/actions/edit', {identifier: props.payload?.editing.identifier, ownerIdentifier: invoiceOwnerIdentifier, line: invoiceLine});
+
+      if (res.isError) throw 'error';
+
+      await SheetManager.hide('New-Invoice-Sheet')
+
+      setTimeout(() => {
+        SheetManager.show('Invoice-Sheet', {
+          payload: {
+            invoice: res.data._invoice,
+            delivered: false,
+            created: false
+          }
+        })
+      }, 500)
     } catch (e) {
       console.log(e)
       setIsLoading(false)
@@ -143,6 +171,21 @@ export function NewInvoiceSheet(props) {
     }
   }
 
+  const loadEditorMode = (invoice) => {
+    setInvoiceOwnerIdentifier(invoice.distributor.identifier)
+    let line = []
+    for (let item of invoice.line) {
+      line.push({
+        identifier: item.product.identifier,
+        quantity: item.quantity,
+        cost: (item.rate / 1000).toFixed(2),
+        lot: item.lot,
+        amount: item.amount / 1000
+      })
+    }
+    setInvoiceLine(line)
+  }
+
   React.useEffect(() => {
     if (!location) return;
 
@@ -188,7 +231,14 @@ export function NewInvoiceSheet(props) {
         <View style={[styles.defaultRowContainer, styles.fullWidth]}>
           <View style={styles.spacer}></View>
           <TouchableOpacity style={{marginLeft: 8, marginRight: 8}} onPress={() => {setInvoiceOwnerIdentifier("")}}>
-            <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary, {marginTop: 10}]}>New Invoice <Text style={styles.primary}>{invoiceOwnerIdentifier && distributors.find(d => d.identifier === invoiceOwnerIdentifier) ? `for ${distributors.find(d => d.identifier === invoiceOwnerIdentifier).company}`: ''}</Text></Text>
+            {
+              !props.payload?.editMode &&
+              <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary, {marginTop: 10}]}>New Invoice <Text style={styles.primary}>{invoiceOwnerIdentifier && distributors.find(d => d.identifier === invoiceOwnerIdentifier) ? `for ${distributors.find(d => d.identifier === invoiceOwnerIdentifier).company}`: ''}</Text></Text>
+            }
+            {
+              props.payload?.editMode &&
+              <Text style={[styles.baseText, styles.bold, styles.centerText, styles.tertiary, {marginTop: 10}]}>Editing Invoice <Text style={styles.primary}>#{props.payload?.editing.identifier}</Text></Text>
+            }
           </TouchableOpacity>
           <View style={styles.spacer}></View>
         </View>
@@ -302,9 +352,15 @@ export function NewInvoiceSheet(props) {
                 <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Total: ${(invoiceLine.reduce((total, next) => total += next.amount, 0)).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
               }
               {
-                invoiceLine.length > 0 && !isLoading &&
+                invoiceLine.length > 0 && !isLoading && !props.payload?.editMode &&
                 <TouchableOpacity onPress={() => onCreateInvoice()} style={[styles.roundedButton, styles.filled, {marginLeft: '7.5%', marginTop: 20}]}>
                   <Text style={[styles.secondary, styles.bold]}>Create Invoice</Text>
+                </TouchableOpacity>
+              }
+              {
+                invoiceLine.length > 0 && !isLoading && props.payload?.editMode &&
+                <TouchableOpacity onPress={() => onUpdateInvoice()} style={[styles.roundedButton, styles.filled, {marginLeft: '7.5%', marginTop: 20}]}>
+                  <Text style={[styles.secondary, styles.bold]}>Update Invoice</Text>
                 </TouchableOpacity>
               }
               {
@@ -488,6 +544,23 @@ export function InvoiceSheet(props) {
 
       </>
     )
+  }
+
+  const onEditIntent = async () => {
+    await SheetManager.hide('Invoice-Sheet', {
+      payload: {
+
+      }
+    })
+
+    setTimeout(() => {
+      SheetManager.show('New-Invoice-Sheet', {
+        payload: {
+          editMode: true,
+          editing: props.payload?.invoice
+        }
+      })
+    }, 500)
   }
 
   const TopUpDelivery = async () => {
@@ -697,6 +770,13 @@ export function InvoiceSheet(props) {
                 <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => props.payload?.topup()}>
                   <Feather name="truck" size={28} color="black" />
                   <Text style={{marginTop: 5, fontSize: 12}}>Delivered</Text>
+                </TouchableOpacity>
+              }
+              {
+                !props.payload?.delivered &&
+                <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={onEditIntent}>
+                  <Feather name="edit" size={28} color="black" />
+                  <Text style={{marginTop: 5, fontSize: 12}}>Edit</Text>
                 </TouchableOpacity>
               }
               {/* {
