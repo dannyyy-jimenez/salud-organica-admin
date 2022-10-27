@@ -171,15 +171,15 @@ export default function DashboardComponent({navigation}) {
           </View>
         </View>
 
-        <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={[styles.fullWidth, styles.justifyCenter, {marginTop: 40, marginBottom: 40, height: 'auto'}]}>
+        <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={[styles.fullWidth, styles.justifyCenter, {marginTop: 20, marginBottom: 20, height: 'auto'}]} contentContainerStyle={{flexGrow: 1}}>
           {
             permissions.includes("STATS") &&
-            <View style={[styles.analyticCard, styles.elevated, {width: 170, backgroundColor: '#20AF7E'}]}>
+            <View style={[styles.analyticCard, styles.elevated, {backgroundColor: '#20AF7E'}]}>
               <Text style={[styles.subHeaderText, styles.bold, styles.secondary]}>YTD Website Sales</Text>
 
               <View style={[styles.fullWidth, styles.defaultColumnContainer]}>
                 <Text style={[styles.tinyText, styles.bold, styles.secondary, styles.opaque]}>Amount</Text>
-                <Text style={[styles.headerText, styles.bold, styles.secondary, {marginTop: 5}]}>${websiteSales.toLocaleString()}</Text>
+                <Text style={[styles.headerText, styles.bold, styles.secondary, {marginTop: 5}]}>${websiteSales.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
               </View>
 
               <TouchableOpacity onPress={() => {navigation.navigate('Orders')}} style={[styles.marginWidth, styles.center, styles.defaultRowContainer, {padding: 10, borderRadius: 5, backgroundColor: "#40BA91"}]}>
@@ -189,12 +189,12 @@ export default function DashboardComponent({navigation}) {
           }
           {
             permissions.includes("STATS") &&
-            <View style={[styles.analyticCard, styles.elevated, {width: 170, backgroundColor: '#40BA91'}]}>
+            <View style={[styles.analyticCard, styles.elevated, {backgroundColor: '#40BA91'}]}>
               <Text style={[styles.subHeaderText, styles.bold, styles.secondary]}>YTD Physical Sales</Text>
 
               <View style={[styles.fullWidth, styles.defaultColumnContainer]}>
                 <Text style={[styles.tinyText, styles.bold, styles.secondary, styles.opaque]}>Amount</Text>
-                <Text style={[styles.headerText, styles.bold, styles.secondary, {marginTop: 5}]}>${physicalSales.toLocaleString()}</Text>
+                <Text style={[styles.headerText, styles.bold, styles.secondary, {marginTop: 5}]}>${physicalSales.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
               </View>
 
               <TouchableOpacity onPress={() => {navigation.navigate('Orders')}} style={[styles.marginWidth, styles.center, styles.defaultRowContainer, {padding: 10, borderRadius: 5, backgroundColor: "#60C6A3"}]}>
@@ -203,7 +203,7 @@ export default function DashboardComponent({navigation}) {
             </View>
           }
           {
-            <View style={[styles.analyticCard, styles.elevated, {width: 170, backgroundColor: '#60C6A3'}]}>
+            <View style={[styles.analyticCard, styles.elevated, {backgroundColor: '#60C6A3'}]}>
               <Text style={[styles.subHeaderText, styles.bold, styles.secondary]}>Retail Distributors</Text>
 
               <View style={[styles.fullWidth, styles.defaultColumnContainer]}>
