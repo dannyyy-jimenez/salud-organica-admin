@@ -332,6 +332,8 @@ export default function DistributorComponent({navigation, route}) {
       const res = await API.get('/admin/invoice', {identifier: identifier});
       if (!res) throw 'error'
 
+      setInvoices((currentState) => [res.data._invoice, ...currentState])
+
       SheetManager.show('Invoice-Sheet', {
         payload: {
           invoice: res.data._invoice,
@@ -366,11 +368,14 @@ export default function DistributorComponent({navigation, route}) {
   return (
     <SafeAreaView style={styles.defaultTabContainer}>
       <View style={[styles.defaultTabHeader, {backgroundColor: stylesheet.Secondary}]}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          underlayColor='#fff'>
-          <Feather name="chevron-left" size={24} color={stylesheet.Primary} />
-        </TouchableOpacity>
+        {
+          !menuVisible &&
+          <TouchableOpacity
+            onPress={() => setMenuVisible(true)}
+            underlayColor='#fff'>
+            <Feather name="menu" size={24} color={stylesheet.Primary} />
+          </TouchableOpacity>
+        }
         <View style={styles.spacer}></View>
         {
           route.params.company.length > 30 &&
@@ -381,15 +386,11 @@ export default function DistributorComponent({navigation, route}) {
           <Text style={[styles.baseText, styles.bold, styles.primary]}>Inventory for {route.params.company}</Text>
         }
         <View style={styles.spacer}></View>
-        {
-          !menuVisible &&
-          <TouchableOpacity
-            onPress={() => setMenuVisible(true)}
-            underlayColor='#fff'
-            style={{marginRight: 10}}>
-            <Feather name="menu" size={24} color={stylesheet.Primary} />
-          </TouchableOpacity>
-        }
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          underlayColor='#fff'>
+          <Feather name="x" size={24} color={stylesheet.Primary} />
+        </TouchableOpacity>
       </View>
       <ScrollView style={styles.defaultTabScrollContent} contentContainerStyle={{alignItems: 'center', justifyContent: 'flex-start', width: '100%', paddingBottom: 70}} refreshControl={<RefreshControl refreshing={isLoading} tintColor={"white"} colors={[stylesheet.Primary]} onRefresh={load} />}>
         {
@@ -610,18 +611,20 @@ export default function DistributorComponent({navigation, route}) {
                   hideLegend={false}
                 />
 
-                {
-                  progressLog.labels.map(label => {
-                    return (
-                      <View style={[styles.statCardM, {flex: 1}]}>
-                        <Text style={[styles.subHeaderText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary]}>{progressLog.changes[progressLog.labels.indexOf(label)]}</Text>
-                        <View style={styles.spacer}></View>
-                        <Text style={[styles.baseText, styles.fullWidth, styles.centerText, styles.tertiary]}>{FormatProductName(line+"_"+label, true).pluralize()}</Text>
-                        <View style={styles.spacer}></View>
-                      </View>
-                    )
-                  })
-                }
+                <View style={[styles.defaultRowContainer, styles.fullWidth]}>
+                  {
+                    progressLog.labels.map(label => {
+                      return (
+                        <View style={[styles.statCardM, {flex: 1}]}>
+                          <Text style={[styles.subHeaderText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary]}>{progressLog.changes[progressLog.labels.indexOf(label)]}</Text>
+                          <View style={styles.spacer}></View>
+                          <Text style={[styles.baseText, styles.fullWidth, styles.centerText, styles.tertiary]}>{FormatProductName(line+"_"+label, true).pluralize()}</Text>
+                          <View style={styles.spacer}></View>
+                        </View>
+                      )
+                    })
+                  }
+                </View>
                 {
                   rangeBegin !== null && rangeEnd !== null &&
                   <View style={[styles.statCardM, {width: '98%'}]}>
