@@ -10,6 +10,7 @@ import {Picker} from '@react-native-picker/picker';
 import Checkbox from 'expo-checkbox';
 import openMap from 'react-native-open-maps';
 import { FormatSerieName } from './Globals'
+import {SheetManager} from 'react-native-actions-sheet';
 
 let stylesheet = require('../Styles')
 let styles = stylesheet.Styles;
@@ -356,6 +357,18 @@ export default function Distributors({navigation}) {
     })
   }
 
+  const onCreateIntent = async (identifier) => {
+    let created = await SheetManager.show('New-Invoice-Sheet', {
+      payload: {
+        client: identifier
+      }
+    })
+
+    if (created) {
+      load()
+    }
+  }
+
   React.useEffect(() => {
     if (addressSearch === "") {
       return;
@@ -592,7 +605,7 @@ export default function Distributors({navigation}) {
                       <Text style={{marginTop: 5, fontSize: 12}}>Navigate</Text>
                     </TouchableOpacity>
                   }
-                  <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => navigation.navigate("Invoices", {screen: "InboxInhouseInvoices", params: {invoiceOwnerIdentifier: nearest.identifier}})}>
+                  <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => onCreateIntent(nearest.identifier)}>
                     <Feather name="file-plus" size={28} color="black" />
                     <Text style={{marginTop: 5, fontSize: 12}}>New Invoice</Text>
                   </TouchableOpacity>
@@ -684,7 +697,7 @@ export default function Distributors({navigation}) {
                           <Text style={{marginTop: 5, fontSize: 12}}>Navigate</Text>
                         </TouchableOpacity>
                       }
-                      <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => navigation.navigate("Invoices", {screen: "InboxInhouseInvoices", params: {invoiceOwnerIdentifier: distributor.identifier}})}>
+                      <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={() => onCreateIntent(distributor.identifier)}>
                         <Feather name="file-plus" size={28} color="black" />
                         <Text style={{marginTop: 5, fontSize: 12}}>New Invoice</Text>
                       </TouchableOpacity>

@@ -496,12 +496,12 @@ export function NewInvoiceSheet(props) {
                     }}
                   />
                   <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Product</Text>
-                  <ScrollView style={{height: 280, marginTop: 10}} contentContainerStyle={[styles.defaultRowContainer, {flexWrap: 'wrap', justifyContent: 'space-around'}]}>
+                  <ScrollView style={{maxHeight: 700, marginTop: 10}} contentContainerStyle={[styles.defaultRowContainer, {flexWrap: 'wrap', justifyContent: 'space-around'}]}>
                     {
                       products.filter(p => p.sku).map(product => {
                         return (
                           <TouchableOpacity style={{marginTop: 10, marginBottom: 10}} onPress={() => {setInvoiceLineItemRefIdentifier(product.identifier);}}>
-                            <Image style={{ width: 120, height: 120, backgroundColor: product.identifier === invoiceLineItemRefIdentifier ? stylesheet.Primary : 'white'}} resizeMode="contain" source={{uri: 'https://res.cloudinary.com/cbd-salud-sativa/image/upload/f_auto,q_auto,w_100/' + product.shot}}></Image>
+                            <Image style={{ width: 80, height: 80, backgroundColor: product.identifier === invoiceLineItemRefIdentifier ? stylesheet.Primary : 'white'}} resizeMode="contain" source={{uri: 'https://res.cloudinary.com/cbd-salud-sativa/image/upload/f_auto,q_auto,w_100/' + product.shot}}></Image>
                           </TouchableOpacity>
                         )
                       })
