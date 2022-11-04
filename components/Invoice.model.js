@@ -90,6 +90,24 @@ export default function InvoiceModel(props) {
     }
   }
 
+  const GetShareableUri = async () => {
+    setIsLoading(true)
+
+    try {
+      const res = await API.get('/admin/invoice/actions/shareable', {id: invoice.identifier});
+
+      if (res.isError) throw 'error';
+
+      const result = await Share.share({
+        message: res.data._txt,
+      });
+      setIsLoading(false)
+    } catch (e) {
+      setIsLoading(false);
+      console.log(e)
+    }
+  }
+
   const TopUpDelivery = async () => {
     if (isLoading) return;
 
@@ -252,6 +270,10 @@ export default function InvoiceModel(props) {
             <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={GetPdfURI}>
               <AntDesign name="pdffile1" size={28} color="black" />
               <Text style={{marginTop: 5, fontSize: 12}}>Share</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[{marginLeft: 15, marginRight: 15}, styles.center]} onPress={GetShareableUri}>
+              <Feather name="type" size={28} color="black" />
+              <Text style={{marginTop: 5, fontSize: 12}}>Text</Text>
             </TouchableOpacity>
             {
               !delivered &&
