@@ -206,13 +206,16 @@ export default function App() {
        console.log(e)
      }
 
-     try {
+    try {
       const token = await registerForPushNotificationsAsync();
       if (token !== "") {
         setNotificationToken(token)
         setAppIsReady(true)
+      } else {
+        alert("NO TOKEN")
       }
     } catch (e) {
+      alert(e)
       console.log(e);
     }
   };

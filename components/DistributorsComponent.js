@@ -535,7 +535,7 @@ export default function Distributors({navigation}) {
       }
       {
         !routeMode.active &&
-        <ScrollView showsVerticalScrollIndicator={false} style={styles.defaultTabScrollContent} contentContainerStyle={{alignItems: 'flex-start', justifyContent: 'flex-start', width: '90%', marginLeft: '5%', paddingBottom: 70}} refreshControl={<RefreshControl refreshing={isLoading} tintColor={stylesheet.Primary} colors={[stylesheet.Primary]} onRefresh={load} />}>
+        <ScrollView style={styles.defaultTabScrollContent} contentContainerStyle={{alignItems: 'center', justifyContent: 'flex-start', width: '100%', paddingBottom: 70}} refreshControl={<RefreshControl refreshing={isLoading} tintColor={"white"} colors={[stylesheet.Primary]} onRefresh={load} />}>
           {
             isLoading &&
             <LottieView
@@ -619,21 +619,21 @@ export default function Distributors({navigation}) {
               </TouchableOpacity>
             </>
           }
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.defaultRowContainer, styles.fullWidth, styles.justifyCenter, {paddingTop: 15, paddingLeft: 15, paddingBottom: 15, paddingRight: 15, height: 'auto'}]}>
+          <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={[styles.marginWidth, styles.justifyCenter, {marginTop: 20, marginBottom: 20, height: 'auto'}]} contentContainerStyle={{flexGrow: 1, paddingLeft: 10}}>
             {
               routeLetters.map(letter => {
                 return (
-                  <Pressable onPress={() => setRouteLetter(letter)} style={[styles.chip, styles.elevated, routeLetter === letter ? {backgroundColor: stylesheet.Primary} : {}]}>
+                  <Pressable onPress={() => setRouteLetter(letter)} style={[styles.chip, styles.elevated, {marginTop: 15, marginBottom: 15}, routeLetter === letter ? {backgroundColor: stylesheet.Primary} : {}]}>
                     <Text style={[styles.subHeaderText, styles.bold, routeLetter === letter ? {color: 'white'} : styles.tertiary]}>{FormatRouteLetter(letter)}</Text>
                   </Pressable>
                 )
               })
             }
           </ScrollView>
-          <View style={[styles.defaultRowContainer, styles.fullWidth, styles.justifyCenter, {marginBottom: 20, marginTop: 5, height: 'auto'}]}>
+          <View style={[styles.defaultRowContainer, styles.marginWidth, styles.justifyCenter, {marginBottom: 20, marginTop: 5, height: 'auto'}]}>
             {
               needAttention.length > 0 &&
-              <View style={[styles.analyticCard, {width: 170, flex: 'auto'}, styles.elevated, {backgroundColor: '#FF3131'}]}>
+              <View style={[styles.analyticCard, styles.elevated, {backgroundColor: '#FF3131', maxWidth: 170}]}>
                 <Text style={[styles.subHeaderText, styles.bold, styles.secondary]}>Need Attention</Text>
 
                 <View style={[styles.fullWidth, styles.defaultColumnContainer]}>

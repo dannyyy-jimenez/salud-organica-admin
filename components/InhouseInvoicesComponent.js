@@ -422,7 +422,7 @@ export default function InvoicesComponent({navigation, route}) {
                         }
                       ]
                     }}
-                    width={Dimensions.get("window").width * 0.94} // from react-native
+                    width={Dimensions.get("window").width * 0.94 > 380 ? 380 : Dimensions.get("window").width * 0.94} // from react-native
                     height={170}
                     yAxisLabel=""
                     yAxisSuffix=""
@@ -481,7 +481,7 @@ export default function InvoicesComponent({navigation, route}) {
                         }
                       ]
                     }}
-                    width={Dimensions.get("window").width * 0.94} // from react-native
+                    width={Dimensions.get("window").width * 0.94 > 380 ? 380 : Dimensions.get("window").width * 0.94} // from react-native
                     height={170}
                     yAxisLabel=""
                     yAxisSuffix=""
@@ -525,7 +525,7 @@ export default function InvoicesComponent({navigation, route}) {
                   <Text style={[styles.subHeaderText, styles.bold, styles.tertiary]}>This Year's Progress - ${monthlySales.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
                   {
                     monthlySales >= goals[2] &&
-                    <Text style={[styles.tinyText, styles.bold, styles.tertiary, styles.opaque, {marginTop: 5, marginBottom: 5}]}>${goals[2].toLocaleString()} Yearly Goal Completed 🥳</Text>
+                    <Text style={[styles.tinyText, styles.bold, styles.tertiary, styles.opaque, {marginTop: 5, marginBottom: 5}]}>${goals[2].toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")} Yearly Goal Completed 🥳</Text>
                   }
                   {
                     monthlySales < goals[2] &&
@@ -540,7 +540,7 @@ export default function InvoicesComponent({navigation, route}) {
                         }
                       ]
                     }}
-                    width={Dimensions.get("window").width * (1 - (0.01 * invoicesProgress.labels.monthly.length))} // from react-native
+                    width={Dimensions.get("window").width * (1 - (0.01 * invoicesProgress.labels.monthly.length)) > 380 ? 380 * (1 - (0.01 * invoicesProgress.labels.monthly.length)) : Dimensions.get("window").width * (1 - (0.01 * invoicesProgress.labels.monthly.length)) } // from react-native
                     height={170}
                     yAxisLabel=""
                     yAxisSuffix=""

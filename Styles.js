@@ -349,17 +349,19 @@ const Styles = StyleSheet.create({
   },
   fullStoreCard: {
     minHeight: 100,
-    width: 360,
+    width: '98%',
     marginLeft: 10,
     marginRight: 10,
-    maxWidth: Dimensions.get('window').width * 0.98,
+    maxWidth: 600,
     marginTop: 20,
-    marginBottom: 20
+    marginBottom: 20,
+    borderRadius: 5,
+    backgroundColor: '#FCFCFC'
   },
   fullInvoice: {
     minHeight: 200,
-    width: 360,
-    maxWidth: Dimensions.get('window').width * 0.90,
+    width: '98%',
+    maxWidth: 600,
     marginLeft: 10,
     marginRight: 10,
     marginTop: 20,
@@ -466,7 +468,7 @@ const Styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 1 },
-    elevation: 5
+    elevation: 2
   },
   switchable: {
     backgroundColor: '#FAFAFA',
