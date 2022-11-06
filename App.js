@@ -156,6 +156,7 @@ export default function App() {
       try {
         await SplashScreen.preventAutoHideAsync();
       } catch (e) {
+        alert("SPLASH ERROR")
         console.log(e);
       }
       await prepareResources();
