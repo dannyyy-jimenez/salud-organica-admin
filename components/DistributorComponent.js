@@ -531,13 +531,13 @@ export default function DistributorComponent({navigation, route}) {
             {
               projections && inventory.length > 0 &&
               <>
-                <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>{FormatSerieName(line)} Projections</Text>
+                <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>{FormatSerieName(line)} Projections - {Math.abs(Math.floor(info?.itac[line]))} / day</Text>
                 <LineChart
                   data={{
-                    labels: ["", moment(projections[7].date).format('MM/DD'), moment(projections[14].date).format('MM/DD'), moment(projections[21].date).format('MM/DD')],
+                    labels: ["", moment(projections[14].date).format('MM/DD'), moment(projections[28].date).format('MM/DD'), moment(projections[42].date).format('MM/DD')],
                     datasets: [
                       {
-                        data: [inventory[0].totalCount, projections[7].amount, projections[14].amount, projections[21].amount]
+                        data: [inventory[0].totalCount, projections[14].amount, projections[28].amount, projections[42].amount]
                       }
                     ]
                   }}
@@ -569,6 +569,7 @@ export default function DistributorComponent({navigation, route}) {
                     labelColor: (opacity = 1) => `rgba(33, 33, 33, ${opacity})`
                   }}
                   bezier
+                  fromZero={true}
                   style={{
                     padding: 0,
                     margin: 0,

@@ -540,7 +540,7 @@ export default function InvoicesComponent({navigation, route}) {
                         }
                       ]
                     }}
-                    width={Dimensions.get("window").width * (0.94 - (0.01 * invoicesProgress.labels.monthly.length)) } // from react-native
+                    width={Dimensions.get("window").width * (0.92 - (0.01 * invoicesProgress.labels.monthly.length)) } // from react-native
                     height={170}
                     yAxisLabel=""
                     yAxisSuffix=""
