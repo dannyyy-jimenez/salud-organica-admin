@@ -222,7 +222,7 @@ export default function DashboardComponent({navigation}) {
           pendingOrders.length > 0 &&
           <>
             <Text style={[styles.baseText, styles.fullWidth, styles.bold, styles.tertiary]}>Pending Online Orders ({pendingOrders.length})</Text>
-            <ScrollView contentContainerStyle={{padding: 0, margin: 0, width: '100%'}} horizontal={true} showsHorizontalScrollIndicator={false} style={[{marginTop: 0, marginBottom: 50, paddingRight: Dimensions.get("window").width * 0.90, width: '100%', height: 'auto'}]}>
+            <ScrollView contentContainerStyle={{padding: 0, margin: 0}} horizontal={true} showsHorizontalScrollIndicator={false} style={[{marginTop: 0, marginBottom: 50, flex: 1, height: 'auto'}]}>
               {
                 pendingOrders.map((order) => {
                   return (
