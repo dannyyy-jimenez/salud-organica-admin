@@ -349,7 +349,7 @@ export default function DashboardComponent({navigation}) {
                         }
                       ]
                     }}
-                    width={Dimensions.get("window").width * 1} // from react-native
+                    width={Dimensions.get("window").width * 0.94 > 600 ? 600 : Dimensions.get("window").width * 0.94} // from react-native
                     height={170}
                     yAxisLabel=""
                     yAxisSuffix=""
@@ -409,7 +409,7 @@ export default function DashboardComponent({navigation}) {
                               }
                             ]
                           }}
-                          width={Dimensions.get("window").width * 1} // from react-native
+                          width={Dimensions.get("window").width * 0.94 > 600 ? 600 : Dimensions.get("window").width * 0.94} // from react-native
                           height={170}
                           yAxisLabel=""
                           yAxisSuffix=""
