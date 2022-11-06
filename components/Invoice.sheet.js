@@ -194,6 +194,10 @@ export function NewInvoiceSheet(props) {
   }, [location])
 
   React.useEffect(() => {
+    load()
+  }, [])
+
+  React.useEffect(() => {
     if (invoiceLineItemRefIdentifier == "" || invoiceLineItemRefCost !== "") return;
 
     setInvoiceLineItemRefCost(products.find(p => p.identifier === invoiceLineItemRefIdentifier).distributorPrice.toFixed(2))
@@ -601,6 +605,24 @@ export function InvoiceSheet(props) {
     }
   }
 
+  const GetShareableUri = async () => {
+    setIsLoading(true)
+
+    try {
+      const res = await API.get('/admin/invoice/actions/shareable', {id: props.payload?.invoice.identifier});
+
+      if (res.isError) throw 'error';
+
+      const result = await Share.share({
+        message: res.data._txt,
+      });
+      setIsLoading(false)
+    } catch (e) {
+      setIsLoading(false);
+      console.log(e)
+    }
+  }
+
   return (
     <ActionSheet id={props.sheetId} containerStyle={{backgroundColor: stylesheet.Secondary}} indicatorColor={stylesheet.Tertiary} gestureEnabled={true} onClose={() => {setConfirmInvoiceDeleteMode(false); setInvoicePaymentMode(false); setShowInvoiceReminders(false); setInvoiceRemindersSection("PRINT")}}>
       {
@@ -612,9 +634,20 @@ export function InvoiceSheet(props) {
             <View style={styles.spacer}></View>
           </View>
 
-          <TouchableOpacity onPress={() => GetPrintableURI(props.payload?.invoice.identifier)} style={[styles.defaultRowContainer, styles.fullWidth, styles.center]}>
-            <Feather name="printer" size={36} color={stylesheet.Primary} />
-          </TouchableOpacity>
+          {
+            Platform.OS === 'ios' &&
+            <TouchableOpacity onPress={() => GetPrintableURI(props.payload?.invoice.identifier)} style={[styles.defaultRowContainer, styles.fullWidth, styles.center]}>
+              <Feather name="printer" size={36} color={stylesheet.Primary} />
+            </TouchableOpacity>
+
+          }
+          {
+            Platform.OS !== 'ios' &&
+            <TouchableOpacity onPress={() => GetShareableURI(props.payload?.invoice.identifier)} style={[styles.defaultRowContainer, styles.fullWidth, styles.center]}>
+              <Feather name="printer" size={36} color={stylesheet.Primary} />
+            </TouchableOpacity>
+
+          }
 
           <Text style={[styles.subHeaderText, styles.bold, styles.centerText, styles.tertiary]}>You might want to print the invoice</Text>
 

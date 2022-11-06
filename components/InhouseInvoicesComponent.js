@@ -320,7 +320,7 @@ export default function InvoicesComponent({navigation, route}) {
           </>
         }
       </View>
-      <ScrollView style={styles.defaultTabScrollContent} contentContainerStyle={{alignItems: 'center', justifyContent: 'flex-start', width: '100%', paddingBottom: 70}} refreshControl={<RefreshControl refreshing={isLoading} tintColor={"white"} colors={[stylesheet.Primary]} onRefresh={load} />}>
+      <ScrollView showsVerticalScrollIndicator={false} style={styles.defaultTabScrollContent} contentContainerStyle={{alignItems: 'center', justifyContent: 'flex-start', width: '100%', paddingBottom: 70}} refreshControl={<RefreshControl refreshing={isLoading} tintColor={"white"} colors={[stylesheet.Primary]} onRefresh={load} />}>
         {
           isLoading &&
           <LottieView
@@ -407,11 +407,11 @@ export default function InvoicesComponent({navigation, route}) {
                   <Text style={[styles.subHeaderText, styles.bold, styles.tertiary]}>This Week's Progress - ${dailySales.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
                   {
                     dailySales >= goals[0] &&
-                    <Text style={[styles.tinyText, styles.bold, styles.tertiary, styles.opaque, {marginTop: 5, marginBottom: 5}]}>${goals[0].toLocaleString()} Weekly Goal Completed 🥳</Text>
+                    <Text style={[styles.tinyText, styles.bold, styles.tertiary, styles.opaque, {marginTop: 5, marginBottom: 5}]}>${goals[0].toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")} Weekly Goal Completed 🥳</Text>
                   }
                   {
                     dailySales < goals[0] &&
-                    <Text style={[styles.tinyText, styles.bold, styles.tertiary, styles.opaque, {marginTop: 5, marginBottom: 5}]}>{((dailySales / goals[0]) * 100).toFixed(2)}% of the ${goals[0].toLocaleString()} goal</Text>
+                    <Text style={[styles.tinyText, styles.bold, styles.tertiary, styles.opaque, {marginTop: 5, marginBottom: 5}]}>{((dailySales / goals[0]) * 100).toFixed(2)}% of the ${goals[0].toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")} goal</Text>
                   }
                   <LineChart
                     data={{
@@ -422,7 +422,7 @@ export default function InvoicesComponent({navigation, route}) {
                         }
                       ]
                     }}
-                    width={Dimensions.get("window").width * 0.94 > 380 ? 380 : Dimensions.get("window").width * 0.94} // from react-native
+                    width={Dimensions.get("window").width * 0.94 > 600 ? 600 : Dimensions.get("window").width * 0.94} // from react-native
                     height={170}
                     yAxisLabel=""
                     yAxisSuffix=""
@@ -454,7 +454,7 @@ export default function InvoicesComponent({navigation, route}) {
                       padding: 0,
                       margin: 0,
                       marginTop: 10,
-                      left: 0
+                      left: 5
                     }}
                   />
                 </View>
@@ -466,11 +466,11 @@ export default function InvoicesComponent({navigation, route}) {
                   <Text style={[styles.subHeaderText, styles.bold, styles.tertiary]}>This Month's Progress - ${weeklySales.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</Text>
                   {
                     weeklySales >= goals[1] &&
-                    <Text style={[styles.tinyText, styles.bold, styles.tertiary, styles.opaque, {marginTop: 5, marginBottom: 5}]}>${goals[1].toLocaleString()} Monthly Goal Completed 🥳</Text>
+                    <Text style={[styles.tinyText, styles.bold, styles.tertiary, styles.opaque, {marginTop: 5, marginBottom: 5}]}>${goals[1].toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")} Monthly Goal Completed 🥳</Text>
                   }
                   {
                     weeklySales < goals[1] &&
-                    <Text style={[styles.tinyText, styles.bold, styles.tertiary, styles.opaque, {marginTop: 5, marginBottom: 5}]}>{((weeklySales / goals[1]) * 100).toFixed(2)}% of the ${goals[1].toLocaleString()} goal</Text>
+                    <Text style={[styles.tinyText, styles.bold, styles.tertiary, styles.opaque, {marginTop: 5, marginBottom: 5}]}>{((weeklySales / goals[1]) * 100).toFixed(2)}% of the ${goals[1].toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")} goal</Text>
                   }
                   <LineChart
                     data={{
@@ -481,7 +481,7 @@ export default function InvoicesComponent({navigation, route}) {
                         }
                       ]
                     }}
-                    width={Dimensions.get("window").width * 0.94 > 380 ? 380 : Dimensions.get("window").width * 0.94} // from react-native
+                    width={Dimensions.get("window").width * 0.94 > 600 ? 600 : Dimensions.get("window").width * 0.94} // from react-native
                     height={170}
                     yAxisLabel=""
                     yAxisSuffix=""
@@ -513,7 +513,7 @@ export default function InvoicesComponent({navigation, route}) {
                       padding: 0,
                       margin: 0,
                       marginTop: 10,
-                      left: 0
+                      left: 5
                     }}
                   />
                 </View>
@@ -529,7 +529,7 @@ export default function InvoicesComponent({navigation, route}) {
                   }
                   {
                     monthlySales < goals[2] &&
-                    <Text style={[styles.tinyText, styles.bold, styles.tertiary, styles.opaque, {marginTop: 5, marginBottom: 5}]}>{((monthlySales / goals[2]) * 100).toFixed(2)}% of the ${goals[2].toLocaleString()} goal</Text>
+                    <Text style={[styles.tinyText, styles.bold, styles.tertiary, styles.opaque, {marginTop: 5, marginBottom: 5}]}>{((monthlySales / goals[2]) * 100).toFixed(2)}% of the ${goals[2].toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")} goal</Text>
                   }
                   <LineChart
                     data={{
@@ -540,7 +540,7 @@ export default function InvoicesComponent({navigation, route}) {
                         }
                       ]
                     }}
-                    width={Dimensions.get("window").width * (1 - (0.01 * invoicesProgress.labels.monthly.length)) > 380 ? 380 * (1 - (0.01 * invoicesProgress.labels.monthly.length)) : Dimensions.get("window").width * (1 - (0.01 * invoicesProgress.labels.monthly.length)) } // from react-native
+                    width={Dimensions.get("window").width * (0.94 - (0.01 * invoicesProgress.labels.monthly.length)) } // from react-native
                     height={170}
                     yAxisLabel=""
                     yAxisSuffix=""
@@ -572,7 +572,7 @@ export default function InvoicesComponent({navigation, route}) {
                       padding: 0,
                       margin: 0,
                       marginTop: 10,
-                      left: -10
+                      left: 0
                     }}
                   />
                 </View>

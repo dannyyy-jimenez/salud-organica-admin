@@ -82,8 +82,8 @@ export class Distributor {
       lng: this.lng
     }
     let user = {
-      lat: this.location?.latitude,
-      lng: this.location?.longitude
+      lat: this.location?.latitude || 0,
+      lng: this.location?.longitude || 0
     }
 
     return haversine(coords, user) / 3961 // returns distance in km
