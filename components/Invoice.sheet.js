@@ -280,8 +280,10 @@ export function NewInvoiceSheet(props) {
                     backgroundColor: '#fff',
                     width: '50%',
                     marginTop: 20,
-                    marginLeft: '12%',
-                    marginBottom: 40
+                    marginLeft: 'auto',
+                    marginRight: 'auto',
+                    marginBottom: 40,
+                    maxWidth: 150
                   }}
                   autoPlay
                   loop
@@ -375,8 +377,10 @@ export function NewInvoiceSheet(props) {
                       backgroundColor: '#fff',
                       width: '50%',
                       marginTop: 20,
-                      marginLeft: '12%',
-                      marginBottom: 40
+                      marginBottom: 40,
+                      marginLeft: 'auto',
+                      marginRight: 'auto',
+                      maxWidth: 150
                     }}
                     autoPlay
                     loop
@@ -845,8 +849,10 @@ export function InvoiceSheet(props) {
                     backgroundColor: '#fff',
                     width: '50%',
                     marginTop: 20,
-                    marginLeft: '12%',
-                    marginBottom: 40
+                    marginLeft: 'auto',
+                    marginRight: 'auto',
+                    marginBottom: 40,
+                    maxWidth: 150
                   }}
                   autoPlay
                   loop

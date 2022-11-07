@@ -109,6 +109,7 @@ export default function OrdersComponent({navigation}) {
               style={{
                 width: '100%',
                 backgroundColor: '#fff',
+                maxWidth: 150
               }}
               source={require('../assets/17431-package-delivery.json')}
             />
@@ -185,6 +186,7 @@ export default function OrdersComponent({navigation}) {
                   width: '50%',
                   marginLeft: '14%',
                   backgroundColor: '#fff',
+                  maxWidth: 150
                 }}
                 source={require('../assets/loading-wait.json')}
               />

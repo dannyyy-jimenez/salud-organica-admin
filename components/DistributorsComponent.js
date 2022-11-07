@@ -240,15 +240,13 @@ export default function Distributors({navigation}) {
   }
 
   const FormatStatus = (status) => {
-    if (status < 2) {
-      return 'Excellent'
-    } else if (status > 21) {
+    if (status > 21) {
       return `Urgent - ${status}`
     } else if (status > 12) {
       return 'Follow Up'
     }
 
-    return 'Good'
+    return ''
   }
 
   const GetUrgencyColor = (status) => {
@@ -428,6 +426,7 @@ export default function Distributors({navigation}) {
                   style={{
                     width: '100%',
                     backgroundColor: '#fff',
+                    maxWidth: 150
                   }}
                   loop
                   autoPlay
@@ -487,7 +486,7 @@ export default function Distributors({navigation}) {
                     <Feather name="check" size={28} color="black" />
                   </TouchableOpacity>
                   {
-                    distributors[routeMode.current].status > 5 &&
+                    distributors[routeMode.current].status > 12 &&
                     <View style={{position: 'absolute', left: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopRightRadius: 5, borderBottomLeftRadius: 5, backgroundColor: GetUrgencyColor(distributors[routeMode.current].status)}}>
                       <Text style={[styles.tinyText, styles.secondary, {marginTop: 2}]}>{FormatStatus(distributors[routeMode.current].status)}</Text>
                     </View>
@@ -520,7 +519,7 @@ export default function Distributors({navigation}) {
                         </TouchableOpacity>
                       }
                       {
-                        distributor.status > 5 &&
+                        distributor.status > 12 &&
                         <View style={{position: 'absolute', left: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopRightRadius: 5, borderBottomLeftRadius: 5, backgroundColor: GetUrgencyColor(distributor.status)}}>
                           <Text style={[styles.tinyText, styles.secondary, {marginTop: 2}]}>{FormatStatus(distributor.status)}</Text>
                         </View>
@@ -543,6 +542,7 @@ export default function Distributors({navigation}) {
                 style={{
                   width: '100%',
                   backgroundColor: '#fff',
+                  maxWidth: 150
                 }}
                 source={require('..//assets/loading-leaf.json')}
                 // OR find more Lottie files @ https://lottiefiles.com/featured
@@ -610,7 +610,7 @@ export default function Distributors({navigation}) {
                     <Text style={{marginTop: 5, fontSize: 12}}>New Invoice</Text>
                   </TouchableOpacity>
                   {
-                    nearest.status > 5 &&
+                    nearest.status > 12 &&
                     <View style={{position: 'absolute', left: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopRightRadius: 5, borderBottomLeftRadius: 5, backgroundColor: GetUrgencyColor(nearest.status)}}>
                       <Text style={[styles.tinyText, styles.secondary, {marginTop: 2}]}>{FormatStatus(nearest.status)}</Text>
                     </View>
@@ -702,7 +702,7 @@ export default function Distributors({navigation}) {
                         <Text style={{marginTop: 5, fontSize: 12}}>New Invoice</Text>
                       </TouchableOpacity>
                       {
-                        distributor.status > 5 &&
+                        distributor.status > 12 &&
                         <View style={{position: 'absolute', left: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopRightRadius: 5, borderBottomLeftRadius: 5, backgroundColor: GetUrgencyColor(distributor.status)}}>
                           <Text style={[styles.tinyText, styles.secondary, {marginTop: 2}]}>{FormatStatus(distributor.status)}</Text>
                         </View>

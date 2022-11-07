@@ -171,6 +171,7 @@ export default function InvoiceModel(props) {
             style={{
               width: '100%',
               backgroundColor: '#fff',
+              maxWidth: 150
             }}
             loop={true}
             autoPlay

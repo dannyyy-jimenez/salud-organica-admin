@@ -182,6 +182,7 @@ export default function DistributorDepthComponent({navigation, route}) {
               style={{
                 width: '100%',
                 backgroundColor: '#fff',
+                maxWidth: 150
               }}
               source={require('../assets/loading-leaf.json')}
             />

@@ -144,6 +144,7 @@ export default function DashboardComponent({navigation}) {
               style={{
                 width: '60%',
                 backgroundColor: '#fff',
+                maxWidth: 150
               }}
               loop
               autoPlay

@@ -328,6 +328,7 @@ export default function InvoicesComponent({navigation, route}) {
               style={{
                 width: '100%',
                 backgroundColor: '#fff',
+                maxWidth: 150
               }}
               autoPlay
               loop
@@ -637,6 +638,7 @@ export default function InvoicesComponent({navigation, route}) {
                 style={{
                   width: '100%',
                   backgroundColor: '#fff',
+                  maxWidth: 150
                 }}
                 autoPlay
                 loop

@@ -78,6 +78,7 @@ export default function OrderComponent({navigation, route}) {
               style={{
                 width: '100%',
                 backgroundColor: '#fff',
+                maxWidth: 150
               }}
               source={require('../assets/loading-leaf.json')}
             />
@@ -94,6 +95,7 @@ export default function OrderComponent({navigation, route}) {
                     justifyContent: 'center',
                     height: 200,
                     backgroundColor: '#fff',
+                    maxWidth: 150
                   }}
                   autoPlay={true}
                   loop

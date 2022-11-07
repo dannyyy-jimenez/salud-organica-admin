@@ -455,6 +455,7 @@ export default function InvoicesComponent({navigation}) {
               style={{
                 width: '100%',
                 backgroundColor: '#fff',
+                maxWidth: 150
               }}
               source={require('..//assets/loading-leaf.json')}
               // OR find more Lottie files @ https://lottiefiles.com/featured

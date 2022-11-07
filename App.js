@@ -232,7 +232,7 @@ export default function App() {
               style={{
                 width: '100%',
                 height: 400,
-                backgroundColor: '#fff',
+                maxWidth: 150
               }}
               autoPlay={true}
               loop={true}
@@ -248,7 +248,7 @@ export default function App() {
               style={{
                 width: '100%',
                 height: 400,
-                backgroundColor: '#fff',
+                maxWidth: 150
               }}
               autoPlay={true}
               loop={true}

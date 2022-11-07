@@ -400,6 +400,7 @@ export default function DistributorComponent({navigation, route}) {
               style={{
                 width: '100%',
                 backgroundColor: '#fff',
+                maxWidth: 150
               }}
               source={require('../assets/loading-leaf.json')}
             />
