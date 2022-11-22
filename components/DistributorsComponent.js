@@ -782,7 +782,7 @@ export default function Distributors({navigation}) {
             {
               newSection === 0 &&
               <>
-                <ScrollView style={{maxHeight: 200, marginBottom: 10}}>
+                <ScrollView style={{marginBottom: 10}}>
                   {
                     routeLetters.slice(1).map(letter => {
                       return (

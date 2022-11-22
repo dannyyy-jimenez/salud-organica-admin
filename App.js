@@ -289,7 +289,7 @@ export default function App() {
                 return <Feather name="inbox" size={size} color={color} />
               } else if (route.name === 'Visitors') {
                 return <FontAwesome5 name="users" size={size} color={color} />
-              } else if (route.name === 'Retailers') {
+              } else if (route.name === 'Clients') {
                 return <Ionicons name="car-sport" size={size} color={color} />
               }
 
@@ -303,7 +303,7 @@ export default function App() {
               <Tab.Screen name="Orders" component={OrdersStackComponent} />
             }
             <Tab.Screen name="Invoices" component={InboxStackComponent} />
-            <Tab.Screen name="Retailers" component={DistributorsStackComponent} />
+            <Tab.Screen name="Clients" component={DistributorsStackComponent} />
           </Tab.Navigator>
         </NavigationContainer>
       }
