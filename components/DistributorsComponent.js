@@ -375,7 +375,7 @@ export default function Distributors({navigation}) {
     Api.autocomplete(addressSearch, location ? location.coords.latitude : null, location ? location.coords.longitude : null).then(res => {
       if (!res.data.results) return;
 
-      setAutocompletedAddresses(res.data.results.filter(a => a.type === 'Point Address'))
+      setAutocompletedAddresses(res.data.results.filter(a => a.type === 'Point Address' || a.type == "POI"))
     }).catch(e => {
       console.log(e)
     })
@@ -902,7 +902,7 @@ export default function Distributors({navigation}) {
                   <Text style={[styles.baseText, styles.bold, styles.tertiary, {marginTop: 0}]}>Select Address</Text>
                 }
 
-                <ScrollView style={{height: 200, marginBottom: 10}}>
+                <ScrollView style={{maxHeight: 500, marginBottom: 10}}>
                   {
                     autocompletedAddresses.map(address => {
                       return (
