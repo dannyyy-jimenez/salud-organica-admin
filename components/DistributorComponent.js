@@ -140,7 +140,7 @@ export default function DistributorComponent({navigation, route}) {
 
       setTimeout(() => {
         actionSheetRef.current?.setModalVisible(false)
-      }, 1000)
+      }, 3000)
 
     } catch (e) {
       setIsLoading(false)
@@ -373,7 +373,7 @@ export default function DistributorComponent({navigation, route}) {
           <TouchableOpacity
             onPress={() => setMenuVisible(true)}
             underlayColor='#fff'>
-            <Feather name="menu" size={24} color={stylesheet.Primary} />
+            <Feather name="arrow-left" size={24} color={stylesheet.Primary} />
           </TouchableOpacity>
         }
         <View style={styles.spacer}></View>
@@ -471,6 +471,32 @@ export default function DistributorComponent({navigation, route}) {
         {
           !isLoading && !menuVisible && !showInvoices && inventory.length > 0 &&
           <>
+            <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginBottom: 55}]}>{FormatSerieName(line)} Logs</Text>
+            {
+              inventory.slice(0, 5).map((lin, idx) => {
+                return (
+                  <TouchableOpacity style={[styles.statCard, {width: '98%'}]} onPress={() => onEdit(lin)}>
+                    <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary]}>{lin.date} {lin.isDelivery ? "(Delivery)" : ""}</Text>
+                    {
+                      lineProducts.map(identifier => {
+                        let key = `${line}_${identifier}`
+                        return (
+                          <View style={[styles.baseText, styles.fullWidth, styles.tertiary, styles.center, styles.defaultRowContainer, {marginTop: 10}]}>
+                            <Text>{FormatProductName(key, true)}: {lin[key]}</Text>
+                            <View style={styles.spacer}></View>
+                            <Text style={[styles.primary, styles.bold]}>{lin.isDelivery ? CalculateDelivered(key, lin, idx) : ''}</Text>
+                          </View>
+                        )
+                      })
+                    }
+                    {
+                      typeof lin.note === "string" && lin.note !== ""  &&
+                      <Text style={[styles.baseText, styles.fullWidth, styles.bold, styles.tertiary, {marginTop: 10}]}>{lin.note}</Text>
+                    }
+                  </TouchableOpacity>
+                )
+              })
+            }
             {
               inventory.length > 1 &&
               <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 15, marginBottom: 10}]}>{FormatSerieName(line)} Timelapse</Text>
@@ -646,33 +672,6 @@ export default function DistributorComponent({navigation, route}) {
                   </View>
                 }
               </>
-            }
-
-            <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary, {marginTop: 55}]}>{FormatSerieName(line)} Logs</Text>
-            {
-              inventory.slice(0, 5).map((lin, idx) => {
-                return (
-                  <TouchableOpacity style={[styles.statCard, {width: '98%'}]} onPress={() => onEdit(lin)}>
-                    <Text style={[styles.baseText, styles.bold, styles.fullWidth, styles.centerText, styles.tertiary]}>{lin.date} {lin.isDelivery ? "(Delivery)" : ""}</Text>
-                    {
-                      lineProducts.map(identifier => {
-                        let key = `${line}_${identifier}`
-                        return (
-                          <View style={[styles.baseText, styles.fullWidth, styles.tertiary, styles.center, styles.defaultRowContainer, {marginTop: 10}]}>
-                            <Text>{FormatProductName(key, true)}: {lin[key]}</Text>
-                            <View style={styles.spacer}></View>
-                            <Text style={[styles.primary, styles.bold]}>{lin.isDelivery ? CalculateDelivered(key, lin, idx) : ''}</Text>
-                          </View>
-                        )
-                      })
-                    }
-                    {
-                      typeof lin.note === "string" && lin.note !== ""  &&
-                      <Text style={[styles.baseText, styles.fullWidth, styles.bold, styles.tertiary, {marginTop: 10}]}>{lin.note}</Text>
-                    }
-                  </TouchableOpacity>
-                )
-              })
             }
           </>
         }

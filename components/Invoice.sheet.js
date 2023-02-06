@@ -402,11 +402,15 @@ export function NewInvoiceSheet(props) {
               {
                 invoiceLineItemRefIdentifier != "" && !invoiceAddScanMode && !invoiceAddSearchMode &&
                 <>
-                  <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Product</Text>
-                  <Text style={[{marginTop: 10}, styles.baseText, styles.tertiary]}>{FormatProductNameLong(products.find(p => p.identifier === invoiceLineItemRefIdentifier))}</Text>
-                  <Image style={{ marginTop: 20, width: 120, height: 120}} resizeMode="contain" source={{uri: 'https://res.cloudinary.com/cbd-salud-sativa/image/upload/f_auto,q_auto,w_100/' + products.find(p => p.identifier === invoiceLineItemRefIdentifier).shot}}></Image>
-                  <Text style={[styles.baseText, styles.bold, styles.tertiary, {marginTop: 20}]}>Lot Number</Text>
-                  <Text style={[styles.baseText, styles.tertiary, {marginBottom: 20}]}>#{invoiceLineItemRefLot}</Text>
+                  <View style={[styles.defaultRowContainer, styles.fullWidth, {marginBottom: 20}]}>
+                    <View style={[styles.defaultColumnContainer, {width: '48%'}]}>
+                      <Text style={[styles.baseText, styles.bold, styles.tertiary]}>Product</Text>
+                      <Text style={[{marginTop: 10}, styles.baseText, styles.tertiary]}>{FormatProductNameLong(products.find(p => p.identifier === invoiceLineItemRefIdentifier))} <Text style={styles.tinyText}>({invoiceLineItemRefLot})</Text></Text>
+                    </View>
+                    <View style={[styles.defaultColumnContainer, {width: '48%'}]}>
+                      <Image style={{ width: 80, height: 50}} resizeMode="cover" source={{uri: 'https://res.cloudinary.com/cbd-salud-sativa/image/upload/f_auto,q_auto,w_100/' + products.find(p => p.identifier === invoiceLineItemRefIdentifier).shot}}></Image>
+                    </View>
+                  </View>
                 </>
               }
 
@@ -443,6 +447,7 @@ export function NewInvoiceSheet(props) {
                     style={[{marginTop: 5,  marginBottom: 20, width: '100%'}, styles.baseInput]}
                     placeholder="Enter quantity..."
                     keyboardType="numeric"
+                    autoFocus={invoiceLineItemRefIdentifier != ""}
                     value={invoiceLineItemRefQty}
                     onChangeText={(text) => {
                       setInvoiceLineItemRefQty(text)
@@ -526,12 +531,9 @@ export function NewInvoiceSheet(props) {
                 </>
               }
 
-              {
-                invoiceLineItemRefIdentifier !== "" && invoiceLineItemRefQty !== "" && parseInt(invoiceLineItemRefQty) > 0 && invoiceLineItemRefCost !== "" && invoiceLineItemRefLot !== "" && !invoiceAddSearchMode &&
-                <TouchableOpacity onPress={onAddLineItem} style={[styles.roundedButton, styles.filled, {marginLeft: '7.5%', marginTop: 40}]}>
-                  <Text style={[styles.secondary, styles.bold]}>Add Line Item</Text>
-                </TouchableOpacity>
-              }
+              <TouchableOpacity disabled={!(invoiceLineItemRefIdentifier !== "" && invoiceLineItemRefQty !== "" && parseInt(invoiceLineItemRefQty) > 0 && invoiceLineItemRefCost !== "" && invoiceLineItemRefLot !== "" && !invoiceAddSearchMode)} onPress={onAddLineItem} style={[styles.roundedButton, styles.filled, {marginLeft: '7.5%', marginTop: 40, opacity: !(invoiceLineItemRefIdentifier !== "" && invoiceLineItemRefQty !== "" && parseInt(invoiceLineItemRefQty) > 0 && invoiceLineItemRefCost !== "" && invoiceLineItemRefLot !== "" && !invoiceAddSearchMode) ? 0.2 : 1}]}>
+                <Text style={[styles.secondary, styles.bold]}>Add Line Item</Text>
+              </TouchableOpacity>
             </>
           }
         </View>

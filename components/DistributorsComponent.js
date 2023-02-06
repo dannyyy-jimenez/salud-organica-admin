@@ -130,7 +130,7 @@ export default function Distributors({navigation}) {
           }
           return 0
         })
-        let uniqueRoutes = [""]
+        let uniqueRoutes = ["all"]
         for (let l of res.data._d.map(d => d.routeLetter).sort()) {
           if (!uniqueRoutes.includes(l)) {
             uniqueRoutes.push(l)
@@ -239,16 +239,6 @@ export default function Distributors({navigation}) {
     openMap({ latitude: dist.lat, longitude: dist.lng, query: dist.company, end: dist.address });
   }
 
-  const FormatStatus = (status) => {
-    if (status > 21) {
-      return `Urgent - ${status}`
-    } else if (status > 12) {
-      return 'Follow Up'
-    }
-
-    return ''
-  }
-
   const GetUrgencyColor = (status) => {
     if (status < 2) {
       return stylesheet.Primary
@@ -279,11 +269,19 @@ export default function Distributors({navigation}) {
     } else if (letter == 'G') {
       return 'Northside'
     } else if (letter == 'H') {
-      return 'New York TBD'
+      return 'Far North'
+    } else if (letter == "NY-C") {
+      return 'New Jersey'
+    } else if (letter == "NY-A") {
+      return 'New York North'
+    } else if (letter == "NY-B") {
+      return 'New York South'
+    } else if (letter == 'all') {
+      return 'All'
     }
 
 
-    return 'All';
+    return 'Pending';
   }
 
   React.useEffect(() => {
@@ -445,7 +443,7 @@ export default function Distributors({navigation}) {
                 <View style={[styles.defaultColumnContainer, styles.fullWidth, styles.fullSCContent, {borderBottomRightRadius: 0, borderBottomLeftRadius: 0, backgroundColor: "#FCFCFC"}]}>
                   <Text style={[styles.tinyText, styles.bold, {opacity: 0.5}, styles.center]}>{distributors[routeMode.current].address}</Text>
                   <Text numberOfLines={1} style={[styles.subHeaderText, styles.nunitoText, styles.tertiary, {marginTop: 20, marginBottom: 20}]}>{distributors[routeMode.current].company}</Text>
-                  {
+                  {/* {
                     distributors[routeMode.current].issues && distributors[routeMode.current].issues.length > 0 &&
                     <View style={[styles.defaultColumnContainer, styles.fullWidth, {position: 'relative'}]}>
                       {
@@ -465,7 +463,7 @@ export default function Distributors({navigation}) {
                         </>
                       }
                     </View>
-                  }
+                  } */}
                 </View>
                 <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {padding: 10, backgroundColor: '#F9F9F9', borderBottomLeftRadius: 10, borderBottomRightRadius: 10}]}>
                   {
@@ -485,12 +483,6 @@ export default function Distributors({navigation}) {
                   <TouchableOpacity style={{marginLeft: 15, marginRight: 15}} onPress={() => findNextRoute()}>
                     <Feather name="check" size={28} color="black" />
                   </TouchableOpacity>
-                  {
-                    distributors[routeMode.current].status > 12 &&
-                    <View style={{position: 'absolute', left: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopRightRadius: 5, borderBottomLeftRadius: 5, backgroundColor: GetUrgencyColor(distributors[routeMode.current].status)}}>
-                      <Text style={[styles.tinyText, styles.secondary, {marginTop: 2}]}>{FormatStatus(distributors[routeMode.current].status)}</Text>
-                    </View>
-                  }
                 </View>
               </TouchableOpacity>
           }
@@ -517,12 +509,6 @@ export default function Distributors({navigation}) {
                           <Feather name="map-pin" size={28} color="black" />
                           <Text style={{marginTop: 5, fontSize: 12}}>Navigate</Text>
                         </TouchableOpacity>
-                      }
-                      {
-                        distributor.status > 12 &&
-                        <View style={{position: 'absolute', left: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopRightRadius: 5, borderBottomLeftRadius: 5, backgroundColor: GetUrgencyColor(distributor.status)}}>
-                          <Text style={[styles.tinyText, styles.secondary, {marginTop: 2}]}>{FormatStatus(distributor.status)}</Text>
-                        </View>
                       }
                     </View>
                   </View>
@@ -609,12 +595,6 @@ export default function Distributors({navigation}) {
                     <Feather name="file-plus" size={28} color="black" />
                     <Text style={{marginTop: 5, fontSize: 12}}>New Invoice</Text>
                   </TouchableOpacity>
-                  {
-                    nearest.status > 12 &&
-                    <View style={{position: 'absolute', left: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopRightRadius: 5, borderBottomLeftRadius: 5, backgroundColor: GetUrgencyColor(nearest.status)}}>
-                      <Text style={[styles.tinyText, styles.secondary, {marginTop: 2}]}>{FormatStatus(nearest.status)}</Text>
-                    </View>
-                  }
                 </View>
               </TouchableOpacity>
             </>
@@ -630,7 +610,7 @@ export default function Distributors({navigation}) {
               })
             }
           </ScrollView>
-          <View style={[styles.defaultRowContainer, styles.marginWidth, styles.justifyCenter, {marginBottom: 20, marginTop: 5, height: 'auto'}]}>
+          {/* <View style={[styles.defaultRowContainer, styles.marginWidth, styles.justifyCenter, {marginBottom: 20, marginTop: 5, height: 'auto'}]}>
             {
               needAttention.length > 0 &&
               <View style={[styles.analyticCard, styles.elevated, {backgroundColor: '#FF3131', maxWidth: 170}]}>
@@ -646,7 +626,7 @@ export default function Distributors({navigation}) {
                 </TouchableOpacity>
               </View>
             }
-          </View>
+          </View> */}
           {
             !isLoading && sortBy == 'urgency' &&
             <Text style={[styles.baseText, styles.bold, styles.tertiary]}>By Urgency</Text>
@@ -660,7 +640,7 @@ export default function Distributors({navigation}) {
                       <Text style={[styles.tinyText, styles.bold, {opacity: 0.5}, styles.center]}>{distributor.address}</Text>
                       <Text numberOfLines={1} style={[styles.subHeaderText, styles.nunitoText, styles.tertiary, {marginTop: 20, marginBottom: 20}]}>{distributor.company}</Text>
 
-                      {
+                      {/* {
                         distributor.issues && distributor.issues.length > 0 &&
                         <View style={[styles.fullWidth, {flex: 1}]}>
                           {
@@ -680,7 +660,7 @@ export default function Distributors({navigation}) {
                             </>
                           }
                         </View>
-                      }
+                      } */}
                     </View>
                     <View style={[styles.defaultRowContainer, styles.fullWidth, styles.center, {padding: 10, backgroundColor: '#F9F9F9', borderBottomLeftRadius: 10, borderBottomRightRadius: 10}]}>
                       {
@@ -701,12 +681,6 @@ export default function Distributors({navigation}) {
                         <Feather name="file-plus" size={28} color="black" />
                         <Text style={{marginTop: 5, fontSize: 12}}>New Invoice</Text>
                       </TouchableOpacity>
-                      {
-                        distributor.status > 12 &&
-                        <View style={{position: 'absolute', left: 0, bottom: 0, padding: 5, justifyContent: 'center', alignItems: 'center', borderTopRightRadius: 5, borderBottomLeftRadius: 5, backgroundColor: GetUrgencyColor(distributor.status)}}>
-                          <Text style={[styles.tinyText, styles.secondary, {marginTop: 2}]}>{FormatStatus(distributor.status)}</Text>
-                        </View>
-                      }
                     </View>
                   </TouchableOpacity>
                 </>
